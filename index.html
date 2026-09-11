@@ -1,55 +1,636 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111318"><title>Mon Budget V7</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111318">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Mon Budget V24.2</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="luxury-v22">
+<div class="app">
+<header>
+  <div class="brandwrap">
+      <div class="brandmark">◖◗</div>
+      <div><h1>Mon Budget</h1><div class="sub">Private finance, beautifully simple</div></div>
+    </div>
+  <div class="header-actions">
+<button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
+<button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.2</div></div>
+</header>
+<div class="welcome-strip">
+  <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
+  <button class="quickadd" onclick="openQuickAdd()">＋</button>
+</div>
+<div class="luxe-divider"><span></span></div>
 
-<style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:#f4f5f7;color:#15171c}.app{max-width:650px;margin:auto;padding:18px 15px 105px}.card{background:#fff;border-radius:22px;padding:18px;margin:12px 0;box-shadow:0 5px 20px #0000000a}header{display:flex;justify-content:space-between;align-items:center}h1{margin:0;font-size:28px}h3{margin:0 0 12px}.sub,.muted{color:#74777d;font-size:13px}.badge{background:#111318;color:#fff;padding:7px 10px;border-radius:999px;font-size:12px}.label{font-size:12px;color:#74777d;text-transform:uppercase;letter-spacing:.05em}.balance,.forecast,.daily{font-size:36px;font-weight:850;margin:5px 0 14px}.grid,.forecast-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.forecast-grid{grid-template-columns:repeat(2,1fr)}.mini{padding:13px;background:#f8f8fa;border-radius:15px}.mini b{display:block;font-size:17px;margin-top:5px}.income{color:#16803c}.danger{color:#b42318}input,select{width:100%;padding:13px;border:1px solid #ddd;border-radius:12px;font-size:16px;margin:6px 0 11px;background:#fff}button{border:0;border-radius:13px;padding:12px 15px;font-weight:750}.primary{background:#17181b;color:#fff;width:100%}.secondary{background:#eceef1}.monthnav,.row,.accountrow,.goalhead{display:flex;justify-content:space-between;align-items:center;gap:10px}.monthnav button{background:#eee}.monthname{font-weight:800}.bar,.catbar,.progress{height:9px;background:#e8e8eb;border-radius:10px;overflow:hidden;margin:9px 0 7px}.fill,.catfill,.progress>div{height:100%;background:#17181b}.notice{padding:12px 14px;border-radius:14px;margin-top:10px;font-size:14px}.good{background:#edf8f1;color:#17643a}.warn{background:#fff8e8;color:#8c5a00}.bad{background:#fff0ef;color:#8e1f19}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tab{background:#e7e8eb}.tab.active{background:#17181b;color:#fff}form{display:none}.row{padding:10px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.actions{display:flex;gap:6px;margin-top:5px}.actions button{padding:7px 9px;font-size:12px;background:#f0f1f3}.cat,.goal,.rec{padding:12px;background:#f8f8fa;border-radius:14px;margin:10px 0}.budget-editor{display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:center;margin:7px 0}.budget-editor input{margin:0}.section{display:none}.section.active{display:block}.bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(620px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#fff;padding:8px;border-radius:20px;box-shadow:0 10px 40px #0002}.bottomnav button{background:#f2f3f5;padding:11px 6px;font-size:12px}.bottomnav button.active{background:#17181b;color:#fff}.hidden{display:none}.top{margin-top:12px}@media(max-width:430px){.grid{grid-template-columns:1fr 1fr}.grid .mini:last-child{grid-column:1/-1}.tabs{grid-template-columns:1fr}.bottomnav button{font-size:11px}.budget-editor{grid-template-columns:1fr 100px}}
-</style>
-</head><body><div class="app">
-<header><div><h1>Mon Budget 💰</h1><div class="sub">V7 — prévisions, épargne & récurrents</div></div><div class="badge">V7</div></header>
 <section id="home" class="section active">
-<div class="card"><div class="accountrow"><div style="flex:1"><div class="label">Compte actif</div><select id="accountSelect"></select></div><button class="secondary" onclick="toggle('accountForm')">+ Compte</button></div><div id="accountForm" class="hidden top"><input id="newAccountName" placeholder="Ex. Compte courant"><button class="primary" onclick="addAccount()">Ajouter</button></div></div>
+  <div class="card">
+    <div class="accountrow">
+      <div style="flex:1"><div class="label">Compte actif</div><select id="accountSelect"></select></div>
+      <button class="secondary compact" onclick="toggle('accountForm')">+ Compte</button>
+    </div>
+    <div id="accountForm" class="hidden top">
+      <input id="newAccountName" placeholder="Ex. Compte courant">
+      <button class="primary" onclick="addAccount()">Ajouter</button>
+    </div>
+  </div>
+
+  
+<div class="card account-shortcut" id="accountShortcut">
+  <div>
+    <div class="label">Compte Mon Budget</div>
+    <strong id="homeAccountStatus">Mode local</strong>
+    <div class="muted" id="homeAccountText">Connecte un compte pour retrouver tes données sur plusieurs appareils.</div>
+  </div>
+  <button class="secondary compact" onclick="goToAccountSettings()">Se connecter</button>
+</div>
+
 <div class="card"><div class="monthnav"><button onclick="changeMonth(-1)">‹</button><div class="monthname" id="month"></div><button onclick="changeMonth(1)">›</button></div></div>
-<div class="card"><div class="label">Reste du mois</div><div class="balance" id="remaining">0 €</div><div class="grid"><div class="mini"><span class="label">Revenus</span><b class="income" id="income">0 €</b></div><div class="mini"><span class="label">Dépenses</span><b id="expenses">0 €</b></div><div class="mini"><span class="label">Épargne prévue</span><b id="savingReserve">0 €</b></div></div><div class="label top">Dépenses / revenus</div><div class="bar"><div class="fill" id="fill"></div></div><div class="muted" id="percent"></div><div id="globalNotice"></div></div>
-<div class="card"><div class="label">Prévision fin de mois</div><div class="forecast" id="forecastAmount">—</div><div class="muted" id="forecastText"></div></div>
-<div class="card"><div class="label">Rythme conseillé</div><div class="daily" id="dailyAmount">—</div><div class="muted" id="dailyText"></div></div>
+
+  <div class="card hero-lux">
+    <div class="hero-orb"></div>
+    <div class="hero-top">
+      <div>
+        <div class="label luxe-label">Disponible ce mois-ci</div>
+        <div class="balance" id="remaining">0 €</div>
+      </div>
+      <div class="trend-pill" id="heroTrend">Analyse…</div>
+    </div>
+    <div class="hero-quote">Un budget plus clair pour des décisions plus sereines.</div>
+    <div class="grid">
+      <div class="mini"><span class="label">Revenus</span><b class="income" id="income">0 €</b></div>
+      <div class="mini"><span class="label">Dépenses</span><b id="expenses">0 €</b></div>
+      <div class="mini"><span class="label">Épargne mise de côté</span><b id="savingReserve">0 €</b></div>
+    </div>
+    <div class="label top">Dépenses / revenus</div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <div class="muted" id="percent"></div>
+    <div id="globalNotice"></div>
+  </div>
+  
+<div class="card focus-card">
+  <div class="focus-main">
+    <span class="label">Disponible ce mois-ci</span>
+    <strong id="focusAvailable">0 €</strong>
+  </div>
+  <div class="focus-subgrid">
+    <div><span>Cette semaine</span><b id="focusWeek">0 €</b></div>
+    <div><span>Épargné</span><b id="focusSaved">0 €</b></div>
+  </div>
+  <div class="focus-footer"><div id="focusMessage" class="focus-message">Analyse de ton mois…</div><span class="luxe-chip">Vue intelligente</span></div>
+</div>
+
+<div class="quickstats">
+    <div><span>Fixes</span><b id="fixedSpend">0 €</b></div>
+    <div><span>Variables</span><b id="variableSpend">0 €</b></div>
+    <div><span>Jour moyen</span><b id="avgDaySpend">0 €</b></div>
+  </div>
+
+  
+<div class="smart-summary">
+  <div class="summary-pill"><span>Disponible</span><b id="summaryAvailable">0 €</b></div>
+  <div class="summary-pill"><span>Prévu</span><b id="summaryForecast">0 €</b></div>
+</div>
+<div class="card monthly-pilot">
+  <div class="rowtitle"><div><div class="label">Pilotage du mois</div><h3>Ton rythme idéal</h3></div><span class="status-pill" id="monthStatus">Analyse…</span></div>
+  <div class="pilot-grid">
+    <div class="pilot-main"><span class="label">Budget conseillé cette semaine</span><strong id="weeklyBudget">0 €</strong><small id="weeklyBudgetText">Calcule ton rythme à partir de tes revenus et charges.</small></div>
+    <div class="pilot-side"><span>Reste à vivre</span><b id="livingLeft">0 €</b><span>Épargne possible</span><b id="extraSavings">0 €</b></div>
+  </div>
+  <div class="pacebar"><i id="paceFill"></i></div>
+  <div class="pacefooter"><span id="paceText">—</span><span id="daysLeftText">—</span></div>
+</div>
+
+<div class="card savings-overview">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Épargne du mois</div>
+      <h3>Ce que tu mets vraiment de côté</h3>
+    </div>
+    <button class="secondary compact" onclick="toggle('savingQuickForm')">+ J’ai mis de côté</button>
+  </div>
+
+  <div class="savings-grid">
+    <div class="saving-box">
+      <span>Prévu</span>
+      <b id="savingPlanned">0 €</b>
+    </div>
+    <div class="saving-box">
+      <span>Réalisé</span>
+      <b id="savingActual">0 €</b>
+    </div>
+    <div class="saving-box">
+      <span>Reste</span>
+      <b id="savingRemaining">0 €</b>
+    </div>
+    <div class="saving-box">
+      <span>Bonus</span>
+      <b id="savingBonus">0 €</b>
+    </div>
+  </div>
+
+  <div class="pacebar top"><i id="savingProgress"></i></div>
+  <div class="pacefooter"><span id="savingHint">Définis ou suis ton épargne du mois.</span><span id="savingPercent">0 %</span></div>
+
+  <div id="savingQuickForm" class="hidden top">
+    <input id="savingAmountQuick" type="number" step="0.01" min="0" placeholder="Montant mis de côté (€)">
+    <input id="savingNoteQuick" placeholder="Note (ex. virement épargne)">
+    <button class="primary" onclick="addSavingEntry(true)">Valider</button>
+  </div>
+</div>
+
+<div class="card premium-card premium-hero">
+  <div class="premium-topline">
+    <div><div class="label">Ce mois-ci</div><div class="comparevalue" id="monthDelta">—</div><div class="muted" id="monthDeltaText">Pas encore assez de données</div></div>
+    <div class="score-ring"><span id="budgetScore">—</span><small>Score</small></div>
+  </div>
+  <div class="insight-chip" id="smartInsight">Analyse en cours…</div>
+</div>
+
+
+
+<div class="card" id="predictionsCard">
+  <div class="rowtitle"><h3>Prévisions intelligentes</h3><span class="muted">Fin de mois</span></div>
+  <div id="predictionList"></div>
+</div>
+
+<div class="card">
+  <div class="rowtitle"><h3>Suggestions automatiques</h3><span class="muted">À valider</span></div>
+  <div id="automationSuggestions"></div>
+</div>
+
+<div class="card" id="insightsCard">
+  <div class="rowtitle"><h3>Insights intelligents</h3><span class="muted">Analyse automatique</span></div>
+  <div id="smartInsightsList"></div>
+</div>
+
+<div class="card" id="anomaliesCard">
+  <div class="rowtitle"><h3>Dépenses inhabituelles</h3><span class="muted">À vérifier</span></div>
+  <div id="anomalyList"></div>
+</div>
+
+<div class="card" id="upcomingCard">
+  <div class="rowtitle"><h3>À venir</h3><span class="muted">Charges prévues ce mois-ci</span></div>
+  <div id="upcomingList"></div>
+</div>
+
+<div class="card">
+    <div class="label">Prévision fin de mois</div>
+    <div class="forecast" id="forecastAmount">—</div>
+    <div class="muted" id="forecastText"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Rythme conseillé</div>
+    <div class="daily" id="dailyAmount">—</div>
+    <div class="muted" id="dailyText"></div>
+  </div>
+
+  <div class="card" id="donutCard">
+  <div class="rowtitle"><h3>Répartition</h3><span class="muted">Dépenses du mois</span></div>
+  <div class="donutwrap">
+    <div class="donut" id="donutChart"><div class="donutcenter"><span id="donutTotal">0 €</span><small>dépensé</small></div></div>
+    <div id="donutLegend" class="donutlegend"></div>
+  </div>
+</div>
 <div class="card"><h3>Catégories</h3><div id="cats"></div></div>
 </section>
-<section id="ops" class="section"><div class="tabs"><button class="tab active" onclick="showForm('expenseForm',this)">+ Dépense</button><button class="tab" onclick="showForm('incomeForm',this)">+ Revenu</button><button class="tab" onclick="showForm('transferForm',this)">⇄ Transfert</button></div>
-<form id="expenseForm" class="card" style="display:block"><h3>Ajouter une dépense</h3><input id="eName" placeholder="Ex. Courses" required><input id="eAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" required><input id="eDate" type="date" required><select id="eCat"></select><select id="eNature"><option value="variable">Variable</option><option value="fixed">Fixe</option></select><button class="primary">Ajouter</button></form>
-<form id="incomeForm" class="card"><h3>Ajouter un revenu</h3><input id="iName" placeholder="Ex. Salaire" required><input id="iAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" required><input id="iDate" type="date" required><button class="primary">Ajouter</button></form>
-<form id="transferForm" class="card"><h3>Transfert entre comptes</h3><select id="tFrom"></select><select id="tTo"></select><input id="tAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" required><input id="tDate" type="date" required><button class="primary">Transférer</button></form>
-<div class="card"><h3>Opérations du mois</h3><div id="list"></div></div></section>
-<section id="plan" class="section"><div class="card"><h3>Dépenses récurrentes</h3><div class="muted">Loyer, téléphone, assurance, etc.</div><input id="rName" placeholder="Nom"><input id="rAmount" type="number" step="0.01" min="0" placeholder="Montant (€)"><select id="rCat"></select><select id="rDay"></select><button class="primary" onclick="addRecurring()">Ajouter</button><div id="recurringList" class="top"></div></div>
-<div class="card"><h3>Objectifs d’épargne</h3><input id="gName" placeholder="Ex. Vacances"><input id="gTarget" type="number" step="0.01" min="0" placeholder="Objectif (€)"><input id="gSaved" type="number" step="0.01" min="0" placeholder="Déjà épargné (€)"><input id="gMonthly" type="number" step="0.01" min="0" placeholder="À mettre de côté / mois (€)"><button class="primary" onclick="addGoal()">Ajouter</button><div id="goalsList" class="top"></div></div>
-<div class="card"><h3>Prévision mensuelle</h3><div class="forecast-grid"><div class="mini"><span class="label">Revenus</span><b id="plannedIncome">0 €</b></div><div class="mini"><span class="label">Charges fixes</span><b id="plannedFixed">0 €</b></div><div class="mini"><span class="label">Épargne</span><b id="plannedSavings">0 €</b></div><div class="mini"><span class="label">Variable dispo.</span><b id="plannedVariable">0 €</b></div></div></div></section>
-<section id="settings" class="section"><div class="card"><h3>Budgets par catégorie</h3><div id="budgetEditors"></div><button class="primary top" onclick="saveBudgets()">Enregistrer</button></div><div class="card"><h3>Sauvegarde</h3><button class="primary" onclick="exportBackup()">Exporter sauvegarde</button><label class="secondary" style="display:block;text-align:center;padding:12px;border-radius:13px;margin-top:10px;font-weight:750">Importer<input type="file" accept="application/json" hidden onchange="importBackup(this.files[0])"></label></div><div class="card"><h3>Excel / Sheets</h3><button class="primary" onclick="exportCSV()">Exporter CSV</button></div></section>
-</div><div class="bottomnav"><button class="active" onclick="nav('home',this)">Accueil</button><button onclick="nav('ops',this)">Opérations</button><button onclick="nav('plan',this)">Prévisions</button><button onclick="nav('settings',this)">Réglages</button></div>
+
+<section id="ops" class="section">
+<div class="card scan-card">
+  <div class="rowtitle"><h3>Scanner un ticket</h3><span class="muted">V14</span></div>
+  <div class="muted">Prends une photo ou choisis une image. L’app essaie de détecter automatiquement le commerçant, la date et le total.</div>
+  <input id="receiptInput" type="file" accept="image/*" capture="environment" hidden onchange="handleReceipt(this.files[0])">
+  <button class="primary top" onclick="document.getElementById('receiptInput').click()">📷 Prendre / choisir une photo</button>
+  <div id="scanArea" class="hidden top">
+    <img id="receiptPreview" class="receipt-preview" alt="Aperçu ticket">
+    <div id="scanProgress" class="scan-progress">Image chargée.</div>
+    <div class="grid2 top">
+      <button class="primary" onclick="analyzeReceipt()">Analyser</button>
+      <button class="secondary" onclick="resetScanner()">Effacer</button>
+    </div>
+    <div id="scanResult" class="scan-result hidden">
+      <div class="label">Résultat proposé</div>
+      <input id="scanMerchant" placeholder="Commerçant">
+      <input id="scanAmount" type="number" step="0.01" placeholder="Montant (€)">
+      <input id="scanDate" type="date">
+      <select id="scanCategory"></select>
+      <select id="scanScope"><option value="personal">Perso</option><option value="pro">Pro</option></select>
+      <input id="scanTags" placeholder="Tags séparés par des virgules">
+      <button class="primary" onclick="useScanResult()">Créer la dépense</button>
+      <details class="top">
+        <summary>Voir le texte détecté</summary>
+        <pre id="scanRawText" class="ocr-text"></pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showForm('expenseForm',this)">+ Dépense</button>
+    <button class="tab" onclick="showForm('incomeForm',this)">+ Revenu</button>
+    <button class="tab" onclick="showForm('transferForm',this)">⇄ Transfert</button>
+  </div>
+  <form id="expenseForm" class="card" style="display:block">
+    <h3>Ajouter une dépense</h3>
+    <input id="eName" placeholder="Ex. Courses" required>
+    <input id="eAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" required>
+    <input id="eDate" type="date" required>
+    <select id="eCat"></select>
+    <select id="eNature"><option value="variable">Variable</option><option value="fixed">Fixe</option></select>
+    <select id="eScope"><option value="personal">Perso</option><option value="pro">Pro</option></select>
+    <input id="eTags" placeholder="Tags séparés par des virgules">
+    <button class="primary">Ajouter</button>
+  </form>
+  <form id="incomeForm" class="card">
+    <h3>Ajouter un revenu</h3>
+    <input id="iName" placeholder="Ex. Salaire" required>
+    <input id="iAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" required>
+    <input id="iDate" type="date" required>
+    <button class="primary">Ajouter</button>
+  </form>
+  <form id="transferForm" class="card">
+    <h3>Transfert entre comptes</h3>
+    <select id="tFrom"></select><select id="tTo"></select>
+    <input id="tAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" required>
+    <input id="tDate" type="date" required>
+    <button class="primary">Transférer</button>
+  </form>
+  <div class="card">
+    <h3>Recherche & filtres</h3>
+    <div class="searchbar"><input id="searchInput" placeholder="Rechercher…" oninput="renderFiltered()"><select id="filterCat" onchange="renderFiltered()"><option value="">Toutes catégories</option></select></div>
+    <div class="filtergrid">
+      <select id="filterScope" onchange="renderFiltered()"><option value="">Pro + Perso</option><option value="personal">Perso</option><option value="pro">Pro</option></select>
+      <input id="filterTag" placeholder="Tag…" oninput="renderFiltered()">
+      <input id="filterMin" type="number" step="0.01" placeholder="Min €" oninput="renderFiltered()">
+      <input id="filterMax" type="number" step="0.01" placeholder="Max €" oninput="renderFiltered()">
+    </div>
+    <div id="list"></div>
+  </div>
+</section>
+
+<section id="stats" class="section">
+<div class="card report-entry">
+  <div>
+    <div class="label">Bilan mensuel</div>
+    <h3>Comprendre ton mois</h3>
+    <div class="muted">Score, résumé, comparaison et projection du mois suivant.</div>
+  </div>
+  <button class="secondary" onclick="openReport()">Voir le bilan</button>
+</div>
+  <div class="card">
+    <h3>Statistiques</h3>
+    <select id="statsPeriod" onchange="renderStats()"><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select>
+  </div>
+  <div class="card">
+    <div class="statsgrid">
+      <div class="mini"><span class="label">Moyenne dépenses</span><b id="avgExpenses">0 €</b></div>
+      <div class="mini"><span class="label">Mois le + cher</span><b id="worstMonth">—</b></div>
+      <div class="mini"><span class="label">Catégorie n°1</span><b id="topCategory">—</b></div>
+      <div class="mini"><span class="label">Évolution</span><b id="trend">—</b></div>
+    </div>
+  </div>
+  <div class="card"><h3>Dépenses par mois</h3><div id="chart" class="chart"></div></div>
+</section>
+
+<section id="plan" class="section">
+<div class="card goals-showcase">
+  <div class="rowtitle"><h3>Mes objectifs</h3><span class="muted">Construire demain</span></div>
+  <div id="goalShowcase"></div>
+</div>
+
+
+<div class="card" id="savingsTrackerCard">
+  <div class="rowtitle"><h3>Suivi de l’épargne</h3><span class="muted">Réel + historique</span></div>
+  <div class="muted">Enregistre chaque montant réellement mis de côté. Tu peux aussi l’associer à un objectif.</div>
+  <input id="savingAmount" type="number" step="0.01" min="0" placeholder="Montant mis de côté (€)">
+  <input id="savingDate" type="date">
+  <input id="savingNote" placeholder="Note (ex. virement vers compte épargne)">
+  <select id="savingGoal"><option value="">Aucun objectif lié</option></select>
+  <button class="primary" onclick="addSavingEntry()">Ajouter l’épargne</button>
+  <div id="savingsHistory" class="top"></div>
+</div>
+
+<div class="card">
+  <div class="rowtitle"><h3>Calendrier du mois</h3><span class="muted">Charges fixes prévues</span></div>
+  <div id="calendarList"></div>
+</div>
+
+  <div class="card">
+    <h3>Dépenses récurrentes</h3>
+    <input id="rName" placeholder="Nom">
+    <input id="rAmount" type="number" step="0.01" min="0" placeholder="Montant (€)">
+    <select id="rCat"></select><select id="rDay"></select>
+    <button class="primary" onclick="addRecurring()">Ajouter</button>
+    <div id="recurringList" class="top"></div>
+  </div>
+  <div class="card">
+    <h3>Objectifs d’épargne</h3>
+    <input id="gName" placeholder="Ex. Vacances">
+    <input id="gTarget" type="number" step="0.01" min="0" placeholder="Objectif (€)">
+    <input id="gSaved" type="number" step="0.01" min="0" placeholder="Déjà épargné (€)">
+    <input id="gMonthly" type="number" step="0.01" min="0" placeholder="À mettre de côté / mois (€)">
+    <input id="gDate" type="date" aria-label="Date cible">
+    <button class="primary" onclick="addGoal()">Ajouter</button>
+    <div id="goalsList" class="top"></div>
+  </div>
+</section>
+
+
+<section id="report" class="section">
+  <div class="card report-hero">
+    <div class="label">Bilan mensuel</div>
+    <div class="report-score-wrap">
+      <div>
+        <div class="report-month" id="reportMonth">—</div>
+        <div class="muted">Ton mois résumé en un coup d’œil</div>
+      </div>
+      <div class="report-score">
+        <span id="reportScore">—</span>
+        <small>Score</small>
+      </div>
+    </div>
+    <div id="reportScoreText" class="report-score-text">Analyse en cours…</div>
+  </div>
+
+  <div class="card">
+    <div class="rowtitle"><h3>Résumé du mois</h3><span class="muted">Clôture</span></div>
+    <div class="report-grid">
+      <div class="report-box"><span>Revenus</span><b id="reportIncome">0 €</b></div>
+      <div class="report-box"><span>Dépenses</span><b id="reportExpenses">0 €</b></div>
+      <div class="report-box"><span>Épargne réelle</span><b id="reportSavings">0 €</b></div>
+      <div class="report-box"><span>Reste</span><b id="reportRemaining">0 €</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="rowtitle"><h3>Ce qui ressort</h3><span class="muted">Analyse</span></div>
+    <div id="reportHighlights"></div>
+  </div>
+
+  <div class="card">
+    <div class="rowtitle"><h3>Projection mois suivant</h3><span class="muted">Prévision</span></div>
+    <div class="forecast-next">
+      <div>
+        <span class="label">Dépenses estimées</span>
+        <strong id="nextMonthExpenses">0 €</strong>
+      </div>
+      <div>
+        <span class="label">Épargne potentielle</span>
+        <strong id="nextMonthSavings">0 €</strong>
+      </div>
+    </div>
+    <div id="nextMonthText" class="muted top">—</div>
+  </div>
+
+  <div class="card">
+    <div class="rowtitle"><h3>Historique 12 mois</h3><span class="muted">Vue annuelle</span></div>
+    <div id="annualMiniChart" class="annual-mini-chart"></div>
+  </div>
+</section>
+
+<section id="settings" class="section">
+<div class="card">
+  <div class="rowtitle"><h3>Mes catégories</h3><span class="muted">Personnaliser</span></div>
+  <div class="muted">Ajoute, renomme ou supprime tes catégories de dépenses.</div>
+  <div class="grid2 top">
+    <input id="newCategoryName" placeholder="Nouvelle catégorie">
+    <button class="primary" onclick="addCustomCategory()">Ajouter</button>
+  </div>
+  <div id="categoryManager" class="top"></div>
+</div>
+
+<div class="card account-access-card">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Compte utilisateur</div>
+      <h3>Se connecter à Mon Budget</h3>
+    </div>
+    <span class="user-avatar">MB</span>
+  </div>
+
+  <div id="accountModeBanner" class="notice warn">
+    Mode démo : l’interface de connexion est prête, mais le cloud doit encore être configuré.
+  </div>
+
+  <div id="accountLoggedOutUI">
+    <input id="visibleAuthEmail" type="email" autocomplete="email" placeholder="Adresse email">
+    <input id="visibleAuthPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mot de passe">
+    <button class="primary full" onclick="visibleSignIn()">Se connecter</button>
+    <button class="secondary full" onclick="visibleSignUp()">Créer un compte</button>
+    <button class="linkbtn" onclick="visibleResetPassword()">Mot de passe oublié ?</button>
+  </div>
+
+  <div id="accountLoggedInUI" class="hidden">
+    <div class="profile-row">
+      <div>
+        <span class="label">Connecté avec</span>
+        <strong id="visibleProfileEmail">—</strong>
+      </div>
+      <span class="secure-chip">Compte actif</span>
+    </div>
+    <button class="secondary full top" onclick="signOut()">Se déconnecter</button>
+  </div>
+</div>
+
+<div class="settings-title"><div class="eyebrow">Réglages</div><h2>Personnalise ton expérience</h2></div><div class="card">
+  <h3>Plan du mois</h3>
+  <div class="muted">Définis ton cadre mensuel. L’app calcule ensuite ton reste à vivre et ton budget hebdomadaire conseillé.</div>
+  <input id="planIncome" type="number" step="0.01" min="0" placeholder="Revenu prévu (€)">
+  <input id="planFixed" type="number" step="0.01" min="0" placeholder="Charges fixes prévues (€)">
+  <input id="planSavings" type="number" step="0.01" min="0" placeholder="Épargne prévue (€)">
+  <button class="primary" onclick="saveMonthlyPlan()">Enregistrer le plan du mois</button>
+</div>
+<div class="card">
+  <h3>Personnaliser l’accueil</h3>
+  <div class="muted">Choisis les blocs à afficher sur ton dashboard.</div>
+  <div class="togglelist">
+    <label><span>Répartition des dépenses</span><input id="showDonut" type="checkbox" onchange="saveDashboardPrefs()"></label>
+    <label><span>Insights intelligents</span><input id="showInsights" type="checkbox" onchange="saveDashboardPrefs()"></label>
+    <label><span>Dépenses inhabituelles</span><input id="showAnomalies" type="checkbox" onchange="saveDashboardPrefs()"></label>
+    <label><span>Charges à venir</span><input id="showUpcoming" type="checkbox" onchange="saveDashboardPrefs()"></label>
+    <label><span>Prévisions intelligentes</span><input id="showPredictions" type="checkbox" onchange="saveDashboardPrefs()"></label>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Modèles rapides</h3>
+  <div class="muted">Crée des dépenses fréquentes à ajouter en un clic.</div>
+  <input id="tplName" placeholder="Ex. Courses">
+  <input id="tplAmount" type="number" step="0.01" min="0" placeholder="Montant (€)">
+  <select id="tplCat"></select>
+  <button class="primary" onclick="addTemplate()">Ajouter un modèle</button>
+  <div id="templatesList" class="top"></div>
+</div>
+
+<div class="card">
+  <h3>Règles automatiques</h3>
+  <div class="muted">Exemple : si le nom contient “Spotify”, classer en Abonnements.</div>
+  <input id="ruleKeyword" placeholder="Mot-clé">
+  <select id="ruleCat"></select>
+  <button class="primary" onclick="addRule()">Ajouter une règle</button>
+  <div id="rulesList" class="top"></div>
+</div>
+
+
+
+  <div class="card">
+    <h3>Compte Mon Budget</h3>
+    <div id="cloudStatus" class="notice warn">Comptes non activés — mode local</div>
+    <input id="authEmail" type="email" placeholder="Ton email">
+    <input id="authPassword" type="password" placeholder="Mot de passe">
+    <div class="buttonrow">
+      <button class="primary" onclick="signIn()">Se connecter</button>
+      <button class="secondary" onclick="signUp()">Créer un compte</button>
+    </div>
+    <button class="linkbtn" onclick="resetPassword()">Mot de passe oublié ?</button>
+    <button class="secondary full top" onclick="signOut()">Déconnexion</button>
+  </div>
+
+  <div class="card">
+    <h3>Synchronisation</h3>
+    <div class="muted">Chaque utilisateur possède son propre espace privé. Tes données sont synchronisées entre tes appareils et restent séparées de celles des autres comptes.</div>
+    
+    <label class="switchrow">
+      <span><strong>Synchronisation automatique</strong><br><span class="muted">Envoie les changements après modification</span></span>
+      <input id="autoSyncToggle" type="checkbox" onchange="setAutoSync(this.checked)">
+    </label>
+<div class="grid2 top">
+      <button class="primary" onclick="pushCloud()">Envoyer vers le cloud</button>
+      <button class="secondary" onclick="pullCloud()">Récupérer du cloud</button>
+    </div>
+    <div id="syncInfo" class="muted top">Aucune synchronisation effectuée.</div>
+  </div>
+
+  <div class="card">
+    <h3>Configuration Supabase</h3>
+    <div class="muted">Pour activer le cloud, remplace les deux valeurs dans <strong>config.js</strong> par l’URL et la clé publique anon de ton projet Supabase.</div>
+    <div class="cloudbox top">
+      <code>SUPABASE_URL</code><br>
+      <code>SUPABASE_ANON_KEY</code>
+    </div>
+  </div>
+  <div class="card"><h3>Notifications système</h3><div class="muted">Optionnel : autorise le téléphone à afficher une alerte importante.</div><button class="primary top" onclick="enableNotifications()">Activer les notifications</button><div id="notificationStatus" class="muted top">Non activées.</div></div>
+  <div class="card"><h3>Budgets par catégorie</h3><div id="budgetEditors"></div><button class="primary top" onclick="saveBudgets()">Enregistrer</button></div>
+  <div class="card"><h3>Sauvegarde</h3><button class="primary" onclick="exportBackup()">Exporter sauvegarde</button><label class="secondary import">Importer<input type="file" accept="application/json" hidden onchange="importBackup(this.files[0])"></label></div>
+  <div class="card"><h3>Excel / Sheets</h3><button class="primary" onclick="exportCSV()">Exporter CSV</button></div>
+</section>
+</div>
+
+
+
+
+<div id="alertsPanel" class="alerts-panel hidden">
+  <div class="alerts-sheet">
+    <div class="sheet-handle"></div>
+    <div class="rowtitle"><h3>Centre d’alertes</h3><button class="secondary compact" onclick="toggleAlertsPanel()">✕</button></div>
+    <div id="alertsList"></div>
+  </div>
+</div>
+
+<div id="authGate" class="auth-gate hidden">
+  <div class="auth-gate-card">
+    <div class="brandmark auth-logo">◖◗</div>
+    <div class="eyebrow">Mon Budget Cloud</div>
+    <h2>Ton budget.<br>Rien qu’à toi.</h2>
+    <p class="muted">Connecte-toi pour retrouver tes données sur tous tes appareils.</p>
+    <input id="gateEmail" type="email" autocomplete="email" placeholder="Email">
+    <input id="gatePassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mot de passe">
+    <button class="primary full" onclick="gateSignIn()">Se connecter</button>
+    <button class="secondary full" onclick="gateSignUp()">Créer mon compte</button>
+    <button class="linkbtn" onclick="gateResetPassword()">Mot de passe oublié ?</button>
+    <div class="auth-footnote">Chaque utilisateur possède son propre espace privé.</div>
+  </div>
+</div>
+<div id="onboarding" class="onboarding hidden">
+  <div class="onboard-card">
+    <div class="brandmark onboard-logo">◖◗</div>
+    <div class="eyebrow">Bienvenue dans Mon Budget</div>
+    <h2 id="onboardTitle">Construisons ton budget</h2>
+    <p id="onboardText" class="muted">Quelques étapes et ton tableau de bord sera prêt.</p>
+
+    <div id="onboardStep1" class="onboard-step">
+      <label>Ton revenu mensuel principal</label>
+      <input id="obIncome" type="number" step="0.01" min="0" placeholder="Ex. 2500 €">
+      <label>Ton budget mensuel souhaité</label>
+      <input id="obBudget" type="number" step="0.01" min="0" placeholder="Ex. 1800 €">
+    </div>
+
+    <div id="onboardStep2" class="onboard-step hidden">
+      <label>Une charge fixe importante</label>
+      <input id="obFixedName" placeholder="Ex. Loyer">
+      <input id="obFixedAmount" type="number" step="0.01" min="0" placeholder="Montant (€)">
+      <select id="obFixedCat"></select>
+    </div>
+
+    <div id="onboardStep3" class="onboard-step hidden">
+      <label>Un premier objectif</label>
+      <input id="obGoalName" placeholder="Ex. Vacances">
+      <input id="obGoalTarget" type="number" step="0.01" min="0" placeholder="Objectif (€)">
+      <input id="obGoalDate" type="date">
+    </div>
+
+    <div class="onboard-progress"><i id="onboardProgress"></i></div>
+    <div class="onboard-actions">
+      <button class="secondary" onclick="skipOnboarding()">Passer</button>
+      <button class="primary" id="onboardNext" onclick="nextOnboarding()">Continuer</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="quickExpenseModal" class="quick-expense-modal hidden">
+  <div class="quick-expense-card">
+    <div class="sheet-handle"></div>
+    <div class="rowtitle"><h3>Ajouter une dépense</h3><button class="secondary compact" onclick="closeQuickExpense()">✕</button></div>
+    <input id="qeAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" inputmode="decimal">
+    <select id="qeCat"></select>
+    <button class="primary" onclick="saveQuickExpense()">Ajouter</button>
+    <button class="secondary full" onclick="openAdvancedExpense()">Plus d’options</button>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<div id="quickSheet" class="sheet-backdrop hidden" onclick="closeQuickAdd(event)">
+  <div class="quick-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Ajouter rapidement</div>
+    <button class="sheet-action" onclick="openQuickExpense()"><span>−</span><div><b>Dépense</b><small>Ajout rapide en quelques secondes</small></div></button>
+    <button class="sheet-action" onclick="quickNav('incomeForm')"><span>＋</span><div><b>Revenu</b><small>Salaire, remboursement…</small></div></button>
+    <button class="sheet-action" onclick="quickNav('transferForm')"><span>⇄</span><div><b>Transfert</b><small>Entre tes comptes</small></div></button>
+<button class="sheet-action" onclick="openScanner()"><span>▣</span><div><b>Scanner un ticket</b><small>Photo → montant, date, commerçant</small></div></button>
+    <button class="sheet-action" onclick="openSavingPanel()"><span>⬒</span><div><b>Mettre de côté</b><small>Ajouter une vraie épargne du mois</small></div></button>
+    <button class="secondary full top" onclick="closeQuickAdd()">Fermer</button>
+  </div>
+</div>
+
+<div class="bottomnav">
+  <button class="active" onclick="nav('home',this)">⌂<small>Accueil</small></button>
+  <button onclick="nav('ops',this)">↕<small>Activité</small></button>
+  <button onclick="nav('stats',this)">◔<small>Stats</small></button>
+  <button onclick="nav('plan',this)">◎<small>Prévoir</small></button>
+  <button onclick="nav('settings',this)">⚙<small>Réglages</small></button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-const KEY='monBudgetV7',cats=['Logement','Courses','Transport','Enfant','Abonnements','Loisirs','Shopping','Travail','Autres'];const eur=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(+n||0);
-let raw=localStorage.getItem(KEY)||localStorage.getItem('monBudgetV6')||localStorage.getItem('monBudgetV5')||localStorage.getItem('monBudgetV1');let state=raw?JSON.parse(raw):{accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[]};if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];state.ops=(state.ops||[]).map(x=>({...x,id:x.id||'op_'+Date.now()+Math.random(),accountId:x.accountId||'main'}));let view=new Date();view.setDate(1);
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}function budgets(){return state.budgets[state.activeAccount]||(state.budgets[state.activeAccount]={})}function mk(){return view.getFullYear()+'-'+String(view.getMonth()+1).padStart(2,'0')}function mo(){return state.ops.filter(x=>x.accountId===state.activeAccount&&x.date.startsWith(mk()))}function monthLabel(){let s=view.toLocaleDateString('fr-BE',{month:'long',year:'numeric'});return s[0].toUpperCase()+s.slice(1)}function monthlySave(){return state.goals.reduce((s,g)=>s+(+g.monthly||0),0)}function recTotal(){return state.recurring.filter(r=>r.accountId===state.activeAccount).reduce((s,r)=>s+r.amount,0)}
-function render(){accountSelect.innerHTML=state.accounts.map(a=>`<option value="${a.id}" ${a.id===state.activeAccount?'selected':''}>${a.name}</option>`).join('');accountSelect.onchange=e=>{state.activeAccount=e.target.value;render()};const co=cats.map(c=>`<option>${c}</option>`).join('');eCat.innerHTML=co;rCat.innerHTML=co;rDay.innerHTML=Array.from({length:28},(_,i)=>`<option value="${i+1}">Le ${i+1}</option>`).join('');tFrom.innerHTML=state.accounts.map(a=>`<option value="${a.id}" ${a.id===state.activeAccount?'selected':''}>${a.name}</option>`).join('');tTo.innerHTML=state.accounts.map(a=>`<option value="${a.id}" ${a.id!==state.activeAccount?'selected':''}>${a.name}</option>`).join('');month.textContent=monthLabel();let a=mo(),inc=a.filter(x=>x.type==='income').reduce((s,x)=>s+x.amount,0),exp=a.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0),sav=monthlySave(),rem=inc-exp-sav;income.textContent=eur(inc);expenses.textContent=eur(exp);savingReserve.textContent=eur(sav);remaining.textContent=eur(rem);let p=inc?Math.min(100,exp/inc*100):0;fill.style.width=p+'%';percent.textContent=Math.round(p)+' % des revenus dépensés';let tb=cats.reduce((s,c)=>s+(+budgets()[c]||0),0);globalNotice.innerHTML=!tb?'<div class="notice warn">Définis tes budgets pour activer les alertes.</div>':exp/tb<.75?`<div class="notice good">Budget OK · ${eur(tb-exp)} restant.</div>`:exp/tb<=1?`<div class="notice warn">${Math.round(exp/tb*100)} % du budget utilisé.</div>`:`<div class="notice bad">Dépassé de ${eur(exp-tb)}.</div>`;let rec=recTotal(),already=a.filter(x=>x.recurringId).reduce((s,x)=>s+x.amount,0),future=Math.max(0,rec-already),forecast=inc-exp-future-sav;forecastAmount.textContent=eur(forecast);forecastText.textContent=`Après ${eur(future)} de charges récurrentes restantes et ${eur(sav)} d’épargne.`;let now=new Date(),same=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth(),last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate(),day=same?now.getDate():1,days=Math.max(1,last-day+1);dailyAmount.textContent=eur(Math.max(0,forecast)/days)+' / jour';dailyText.textContent=`${days} jours restants dans le mois.`;plannedIncome.textContent=eur(inc);plannedFixed.textContent=eur(rec);plannedSavings.textContent=eur(sav);plannedVariable.textContent=eur(Math.max(0,inc-rec-sav));renderCats(a);renderList(a);renderBudgets();renderRecurring();renderGoals();applyRecurring();let td=new Date().toISOString().slice(0,10);if(!eDate.value)eDate.value=td;if(!iDate.value)iDate.value=td;if(!tDate.value)tDate.value=td;save()}
-function renderCats(a){let t={};a.filter(x=>x.type==='expense').forEach(x=>t[x.cat]=(t[x.cat]||0)+x.amount);catsEl=document.getElementById('cats');catsEl.innerHTML=cats.filter(c=>(t[c]||0)>0||(budgets()[c]||0)>0).map(c=>{let s=t[c]||0,l=+budgets()[c]||0,p=l?s/l*100:0;return `<div class="cat"><div class="row"><span><strong>${c}</strong><br><span class="muted">${l?(l-s>=0?eur(l-s)+' restant':eur(s-l)+' dépassé'):'Pas de plafond'}</span></span><b>${eur(s)}${l?' / '+eur(l):''}</b></div><div class="catbar"><div class="catfill" style="width:${l?Math.min(100,p):0}%"></div></div></div>`}).join('')||'<div class="muted">Aucune donnée.</div>'}
-function renderList(a){list.innerHTML=a.length?a.slice().reverse().map(x=>`<div class="row"><span><strong>${x.name}</strong><br><span class="muted">${x.date.slice(0,10)} · ${x.cat||'Revenu'}${x.nature?' · '+x.nature:''}</span></span><span><b class="${x.type==='income'||x.type==='transfer_in'?'income':'danger'}">${x.type==='income'||x.type==='transfer_in'?'+':'−'} ${eur(x.amount)}</b><div class="actions"><button onclick="editOp('${x.id}')">Modifier</button><button onclick="deleteOp('${x.id}')">Suppr.</button></div></span></div>`).join(''):'<div class="muted">Aucune opération.</div>'}
-function renderBudgets(){budgetEditors.innerHTML=cats.map(c=>`<div class="budget-editor"><span>${c}</span><input type="number" data-cat="${c}" value="${budgets()[c]||''}" placeholder="0 €"></div>`).join('')}function saveBudgets(){document.querySelectorAll('[data-cat]').forEach(i=>budgets()[i.dataset.cat]=Math.max(0,+i.value||0));render()}
-function addAccount(){let n=newAccountName.value.trim();if(!n)return;let id='acc_'+Date.now();state.accounts.push({id,name:n});state.budgets[id]={};state.activeAccount=id;newAccountName.value='';toggle('accountForm');render()}function toggle(id){document.getElementById(id).classList.toggle('hidden')}function changeMonth(n){view.setMonth(view.getMonth()+n);render()}function nav(id,b){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.bottomnav button').forEach(x=>x.classList.remove('active'));b.classList.add('active')}function showForm(id,b){document.querySelectorAll('#ops form').forEach(f=>f.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active')}
-expenseForm.onsubmit=e=>{e.preventDefault();state.ops.push({id:'op_'+Date.now(),type:'expense',name:eName.value,amount:+eAmount.value,cat:eCat.value,nature:eNature.value,date:eDate.value+'T12:00:00',accountId:state.activeAccount});e.target.reset();render()};incomeForm.onsubmit=e=>{e.preventDefault();state.ops.push({id:'op_'+Date.now(),type:'income',name:iName.value,amount:+iAmount.value,cat:'',date:iDate.value+'T12:00:00',accountId:state.activeAccount});e.target.reset();render()};transferForm.onsubmit=e=>{e.preventDefault();if(tFrom.value===tTo.value)return alert('Choisis deux comptes différents.');let a=+tAmount.value||0,d=tDate.value,g='tr_'+Date.now();state.ops.push({id:g+'a',type:'transfer_out',name:'Transfert',amount:a,cat:'Transfert',date:d+'T12:00:00',accountId:tFrom.value,transferGroup:g},{id:g+'b',type:'transfer_in',name:'Transfert',amount:a,cat:'Transfert',date:d+'T12:00:00',accountId:tTo.value,transferGroup:g});e.target.reset();render()};function deleteOp(id){state.ops=state.ops.filter(x=>x.id!==id);render()}function editOp(id){let x=state.ops.find(o=>o.id===id),n=prompt('Nom',x.name);if(n===null)return;let a=prompt('Montant',x.amount);if(a===null)return;x.name=n||x.name;x.amount=Math.max(0,+a||x.amount);render()}
-function addRecurring(){let n=rName.value.trim(),a=+rAmount.value||0;if(!n||!a)return;state.recurring.push({id:'rec_'+Date.now(),name:n,amount:a,cat:rCat.value,day:+rDay.value,accountId:state.activeAccount});rName.value='';rAmount.value='';render()}function renderRecurring(){recurringList.innerHTML=state.recurring.filter(r=>r.accountId===state.activeAccount).map(r=>`<div class="rec"><div class="goalhead"><span><strong>${r.name}</strong><br><span class="muted">${r.cat} · le ${r.day}</span></span><b>${eur(r.amount)}</b></div><div class="actions"><button onclick="deleteRecurring('${r.id}')">Supprimer</button></div></div>`).join('')||'<div class="muted">Aucune dépense récurrente.</div>'}function deleteRecurring(id){state.recurring=state.recurring.filter(r=>r.id!==id);render()}function applyRecurring(){let k=mk(),changed=false;state.recurring.filter(r=>r.accountId===state.activeAccount).forEach(r=>{if(!state.ops.some(x=>x.recurringId===r.id&&x.date.startsWith(k))){let d=String(r.day).padStart(2,'0');state.ops.push({id:'op_'+Date.now()+Math.random(),type:'expense',name:r.name,amount:r.amount,cat:r.cat,nature:'fixed',date:k+'-'+d+'T12:00:00',accountId:r.accountId,recurringId:r.id});changed=true}});if(changed)save()}
-function addGoal(){let n=gName.value.trim(),t=+gTarget.value||0;if(!n||!t)return;state.goals.push({id:'g_'+Date.now(),name:n,target:t,saved:+gSaved.value||0,monthly:+gMonthly.value||0});gName.value='';gTarget.value='';gSaved.value='';gMonthly.value='';render()}function renderGoals(){goalsList.innerHTML=state.goals.map(g=>{let p=Math.min(100,(g.saved/g.target)*100||0);return `<div class="goal"><div class="goalhead"><span><strong>${g.name}</strong><br><span class="muted">${eur(g.saved)} / ${eur(g.target)} · ${eur(g.monthly)}/mois</span></span><b>${Math.round(p)}%</b></div><div class="progress"><div style="width:${p}%"></div></div><div class="actions"><button onclick="addGoalMoney('${g.id}')">+ Ajouter</button><button onclick="deleteGoal('${g.id}')">Supprimer</button></div></div>`}).join('')||'<div class="muted">Aucun objectif.</div>'}function addGoalMoney(id){let g=state.goals.find(x=>x.id===id),a=prompt('Montant ajouté');if(a===null)return;g.saved=Math.min(g.target,g.saved+(+a||0));render()}function deleteGoal(id){state.goals=state.goals.filter(g=>g.id!==id);render()}
-function download(c,n,t){let b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u)}function exportBackup(){download(JSON.stringify(state,null,2),'mon_budget_v7_sauvegarde.json','application/json')}function importBackup(f){if(!f)return;let r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);render()}catch(e){alert('Fichier invalide')}};r.readAsText(f)}function exportCSV(){let rows=[['Compte','Type','Nom','Montant','Catégorie','Nature','Date']];state.ops.forEach(x=>rows.push([state.accounts.find(a=>a.id===x.accountId)?.name||'Compte',x.type,x.name,x.amount,x.cat||'',x.nature||'',x.date.slice(0,10)]));download('\ufeff'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(';')).join('\n'),'mon_budget_v7.csv','text/csv')}
-render();
-</script><script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js', {scope:'./'}).catch(console.error);
-  });
-}
+// Remplace ces 2 valeurs pour activer la synchronisation cloud.
+window.MON_BUDGET_CONFIG = {
+  SUPABASE_URL: "",
+  SUPABASE_ANON_KEY: ""
+};
+
 </script>
-</body></html>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
