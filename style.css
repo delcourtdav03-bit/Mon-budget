@@ -1115,3 +1115,117 @@ input:focus,select:focus,textarea:focus{
 @media(max-width:520px){
   .patrimony-columns{grid-template-columns:1fr}
 }
+
+
+/* V24.3.1 Category UI Fix */
+.categories-card{
+  background:
+    radial-gradient(circle at 100% 0,rgba(126,230,191,.07),transparent 28%),
+    linear-gradient(180deg,#0e1a20,#0a1419);
+  border-color:#22343c;
+}
+#cats{
+  display:grid;
+  gap:12px;
+}
+#cats .cat{
+  margin:0;
+  padding:16px;
+  border-radius:22px;
+  border:1px solid #20323a;
+  background:
+    radial-gradient(circle at 100% 0,rgba(232,201,150,.08),transparent 28%),
+    linear-gradient(180deg,#111f26,#0c171c);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.02);
+}
+#cats .cat .row{
+  padding:0;
+  border:0;
+  align-items:flex-start;
+  gap:12px;
+}
+#cats .cat-left{
+  min-width:0;
+  flex:1;
+}
+#cats .cat-name{
+  display:block;
+  font-size:18px;
+  font-weight:850;
+  line-height:1.15;
+  color:#f5f2ea;
+  letter-spacing:-.02em;
+}
+#cats .cat-sub{
+  display:block;
+  margin-top:6px;
+  font-size:13px;
+  color:#95a0a6;
+  line-height:1.35;
+}
+#cats .cat-amounts{
+  text-align:right;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:3px;
+  min-width:122px;
+}
+#cats .cat-current{
+  font-size:23px;
+  font-weight:900;
+  color:#f7f4ed;
+  line-height:1;
+  letter-spacing:-.03em;
+}
+#cats .cat-limit{
+  font-size:12px;
+  color:#d8bf8d;
+  font-weight:700;
+}
+#cats .catbar{
+  margin:14px 0 10px;
+  height:12px;
+  border-radius:999px;
+  background:#13232a;
+  border:1px solid #21343b;
+  overflow:hidden;
+}
+#cats .catfill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#79e8c0 0%,#9beacc 52%,#e8c996 100%);
+  box-shadow:0 0 14px rgba(121,232,192,.22);
+}
+#cats .catfooter{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+}
+#cats .cat-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#102028;
+  border:1px solid #20343c;
+  color:#cfd7db;
+  font-weight:700;
+}
+#cats .cat-pill.good{background:#0f2b22;border-color:#22493b;color:#9ef0d3}
+#cats .cat-pill.warn{background:#2b2418;border-color:#4b3d22;color:#f2d6a1}
+#cats .cat-pill.bad{background:#311b1c;border-color:#553033;color:#ffb7b1}
+#cats .cat-percent{
+  color:#aab4b9;
+  font-weight:800;
+}
+@media(max-width:480px){
+  #cats .cat{padding:14px}
+  #cats .cat-name{font-size:17px}
+  #cats .cat-current{font-size:21px}
+  #cats .cat-amounts{min-width:102px}
+  #cats .catfooter{flex-direction:column;align-items:flex-start}
+}

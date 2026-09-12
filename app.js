@@ -7,7 +7,62 @@ function isBaseDisplay(name){return baseCats.some(c=>baseDisplayName(c)===name)}
 function allCats(){return [...new Set([...baseCats.map(baseDisplayName),...(state?.customCategories||[])])]} 
 let cats=baseCats.slice();
 const eur=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(+n||0);
-let raw=localStorage.getItem(KEY)||localStorage.getItem('monBudgetV24')||localStorage.getItem('monBudgetV23_1')||localStorage.getItem('monBudgetV23')||localStorage.getItem('monBudgetV22')||localStorage.getItem('monBudgetV21')||localStorage.getItem('monBudgetV20')||localStorage.getItem('monBudgetV19')||localStorage.getItem('monBudgetV18')||localStorage.getItem('monBudgetV17')||localStorage.getItem('monBudgetV16')||localStorage.getItem('monBudgetV15')||localStorage.getItem('monBudgetV14')||localStorage.getItem('monBudgetV13')||localStorage.getItem('monBudgetV12')||localStorage.getItem('monBudgetV11')||localStorage.getItem('monBudgetV10')||localStorage.getItem('monBudgetV9')||localStorage.getItem('monBudgetV8')||localStorage.getItem('monBudgetV7')||localStorage.getItem('monBudgetV6')||localStorage.getItem('monBudgetV5')||localStorage.getItem('monBudgetV1');
+function findExistingBudgetData(){
+  // 1) Exact key already used by the installed V24.x app.
+  const preferred=[
+    KEY,
+    'monBudgetV24_3_PREMIUM',
+    'monBudgetV24_3',
+    'monBudgetV24_2_FINAL',
+    'monBudgetV24_2',
+    'monBudgetV24_1',
+    'monBudgetV24',
+    'monBudgetV23_1','monBudgetV23','monBudgetV22','monBudgetV21','monBudgetV20',
+    'monBudgetV19','monBudgetV18','monBudgetV17','monBudgetV16','monBudgetV15',
+    'monBudgetV14','monBudgetV13','monBudgetV12','monBudgetV11','monBudgetV10',
+    'monBudgetV9','monBudgetV8','monBudgetV7','monBudgetV6','monBudgetV5','monBudgetV1'
+  ];
+
+  for(const k of preferred){
+    const v=localStorage.getItem(k);
+    if(v){
+      try{
+        const parsed=JSON.parse(v);
+        if(parsed && typeof parsed==='object') return {raw:v,key:k};
+      }catch(e){}
+    }
+  }
+
+  // 2) Safety net: scan any Mon Budget-like localStorage entry and choose
+  // the one that appears to contain the most user data.
+  let best=null;
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k || !/monbudget/i.test(k)) continue;
+    const v=localStorage.getItem(k);
+    if(!v) continue;
+    try{
+      const x=JSON.parse(v);
+      if(!x || typeof x!=='object') continue;
+      const score=
+        (Array.isArray(x.ops)?x.ops.length*5:0)+
+        (Array.isArray(x.savingsEntries)?x.savingsEntries.length*4:0)+
+        (Array.isArray(x.goals)?x.goals.length*3:0)+
+        (Array.isArray(x.recurring)?x.recurring.length*2:0)+
+        (x.budgets?Object.keys(x.budgets).length:0);
+      if(!best || score>best.score) best={raw:v,key:k,score};
+    }catch(e){}
+  }
+  return best;
+}
+const existingBudget=findExistingBudgetData();
+let raw=existingBudget?.raw||null;
+if(existingBudget?.key && existingBudget.key!==KEY){
+  try{
+    localStorage.setItem(KEY, existingBudget.raw);
+    localStorage.setItem('monBudgetLastMigrationSource', existingBudget.key);
+  }catch(e){}
+}
 let state=raw?JSON.parse(raw):{accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[]};
 if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.patrimony)state.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
 state.ops=(state.ops||[]).map(x=>({...x,id:x.id||'op_'+Date.now()+Math.random(),accountId:x.accountId||'main',scope:x.scope||'personal',tags:Array.isArray(x.tags)?x.tags:[]}));
@@ -1146,6 +1201,14 @@ function renderPatrimony(){
   patrimonyNet.textContent=eur(assets-debts);
 }
 
+
+function showDataMigrationNotice(){
+  const source=localStorage.getItem('monBudgetLastMigrationSource');
+  if(!source)return;
+  localStorage.removeItem('monBudgetLastMigrationSource');
+  setTimeout(()=>showToast('Tes données existantes ont bien été récupérées ✓'),350);
+}
+
 function render(){
   refreshCats();
   accountSelect.innerHTML=state.accounts.map(a=>`<option value="${a.id}" ${a.id===state.activeAccount?'selected':''}>${a.name}</option>`).join('');
@@ -1169,7 +1232,68 @@ function render(){
   renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();renderFinalToday();renderPremiumProjection();renderAnnualPremium();renderPatrimony();loadMonthlyPlanInputs();applyDashboardPrefs();applyRecurring();renderCloudStatus();
   let td=new Date().toISOString().slice(0,10);if(!eDate.value)eDate.value=td;if(!iDate.value)iDate.value=td;if(!tDate.value)tDate.value=td;save();
 }
-function renderCats(a){let t={};a.filter(x=>x.type==='expense').forEach(x=>t[x.cat]=(t[x.cat]||0)+x.amount);cats.innerHTML=cats.filter?'' : '';document.getElementById('cats').innerHTML=cats.filter(c=>(t[c]||0)>0||(budgets()[c]||0)>0).map(c=>{let s=t[c]||0,l=+budgets()[c]||0,p=l?s/l*100:0;return `<div class="cat"><div class="row"><span><strong>${c}</strong><br><span class="muted">${l?(l-s>=0?eur(l-s)+' restant':eur(s-l)+' dépassé'):'Pas de plafond'}</span></span><b>${eur(s)}${l?' / '+eur(l):''}</b></div><div class="catbar"><div class="catfill" style="width:${l?Math.min(100,p):0}%"></div></div></div>`}).join('')||emptyState('◌','Aucune dépense ici','Tes dépenses apparaîtront ici dès que tu en ajoutes une.')}
+function renderCats(a){
+  const totals={};
+  a.filter(x=>x.type==='expense').forEach(x=>totals[x.cat]=(totals[x.cat]||0)+x.amount);
+
+  const el=document.getElementById('cats');
+  if(!el)return;
+
+  const visible=cats.filter(c=>(totals[c]||0)>0||(budgets()[c]||0)>0);
+  if(!visible.length){
+    el.innerHTML=emptyState('◌','Aucune dépense ici','Tes dépenses apparaîtront ici dès que tu en ajoutes une.');
+    return;
+  }
+
+  el.innerHTML=visible.map(c=>{
+    const spent=+(totals[c]||0);
+    const limit=+(budgets()[c]||0);
+    const pct=limit?Math.max(0,Math.min(100,spent/limit*100)):0;
+    const remaining=Math.max(0,limit-spent);
+    const over=Math.max(0,spent-limit);
+    const label=baseDisplayName(c);
+
+    let pillText='Sans plafond';
+    let pillClass='';
+    let subText='Aucun budget défini pour cette catégorie.';
+    let percentText='Libre';
+
+    if(limit>0){
+      percentText=Math.round(spent/limit*100)+' % utilisé';
+      if(over>0){
+        pillText=eur(over)+' dépassé';
+        pillClass='bad';
+        subText='Budget dépassé sur cette catégorie.';
+      }else if(spent/limit>=0.85){
+        pillText=eur(remaining)+' restant';
+        pillClass='warn';
+        subText='Tu approches de la limite prévue.';
+      }else{
+        pillText=eur(remaining)+' restant';
+        pillClass='good';
+        subText='Tu restes dans ton budget prévu.';
+      }
+    }
+
+    return `<div class="cat">
+      <div class="row">
+        <div class="cat-left">
+          <span class="cat-name">${label}</span>
+          <span class="cat-sub">${subText}</span>
+        </div>
+        <div class="cat-amounts">
+          <span class="cat-current">${eur(spent)}</span>
+          <span class="cat-limit">${limit?('sur '+eur(limit)):'Pas de plafond'}</span>
+        </div>
+      </div>
+      <div class="catbar"><div class="catfill" style="width:${limit?Math.min(100,pct):12}%"></div></div>
+      <div class="catfooter">
+        <span class="cat-pill ${pillClass}">${pillText}</span>
+        <span class="cat-percent">${percentText}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
 function renderFiltered(){
   let a=mo(),q=(searchInput?.value||'').toLowerCase(),fc=filterCat?.value||'',scope=document.getElementById('filterScope')?.value||'',tag=(document.getElementById('filterTag')?.value||'').toLowerCase(),min=+(document.getElementById('filterMin')?.value||0),max=+(document.getElementById('filterMax')?.value||0);
   a=a.filter(x=>(!q||x.name.toLowerCase().includes(q))&&(!fc||x.cat===fc)&&(!scope||x.scope===scope)&&(!tag||(x.tags||[]).some(t=>t.toLowerCase().includes(tag)))&&(!min||x.amount>=min)&&(!max||x.amount<=max));
@@ -1369,4 +1493,4 @@ function exportCSV(){let rows=[['Compte','Type','Nom','Montant','Catégorie','Na
 render();initCloud();setupOnboarding();initPrivacy();
 
 
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+showDataMigrationNotice();
