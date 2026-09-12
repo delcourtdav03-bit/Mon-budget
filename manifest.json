@@ -1,11 +1,11 @@
 {
-  "name": "Mon Budget V24.2",
+  "name": "Mon Budget V24.3 Premium Pack",
   "short_name": "Mon Budget",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#050b0f",
   "theme_color": "#050b0f",
-  "description": "Mon Budget V24.2 — correction du menu d’ajout rapide.",
+  "description": "Mon Budget V24.3 avec projections, rapport annuel et patrimoine.",
   "icons": [
     {
       "src": "./icon-192.png",

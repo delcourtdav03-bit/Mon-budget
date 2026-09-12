@@ -9,7 +9,7 @@ let cats=baseCats.slice();
 const eur=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(+n||0);
 let raw=localStorage.getItem(KEY)||localStorage.getItem('monBudgetV24')||localStorage.getItem('monBudgetV23_1')||localStorage.getItem('monBudgetV23')||localStorage.getItem('monBudgetV22')||localStorage.getItem('monBudgetV21')||localStorage.getItem('monBudgetV20')||localStorage.getItem('monBudgetV19')||localStorage.getItem('monBudgetV18')||localStorage.getItem('monBudgetV17')||localStorage.getItem('monBudgetV16')||localStorage.getItem('monBudgetV15')||localStorage.getItem('monBudgetV14')||localStorage.getItem('monBudgetV13')||localStorage.getItem('monBudgetV12')||localStorage.getItem('monBudgetV11')||localStorage.getItem('monBudgetV10')||localStorage.getItem('monBudgetV9')||localStorage.getItem('monBudgetV8')||localStorage.getItem('monBudgetV7')||localStorage.getItem('monBudgetV6')||localStorage.getItem('monBudgetV5')||localStorage.getItem('monBudgetV1');
 let state=raw?JSON.parse(raw):{accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[]};
-if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
+if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.patrimony)state.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
 state.ops=(state.ops||[]).map(x=>({...x,id:x.id||'op_'+Date.now()+Math.random(),accountId:x.accountId||'main',scope:x.scope||'personal',tags:Array.isArray(x.tags)?x.tags:[]}));
 let view=new Date();view.setDate(1);
 const savedTheme=localStorage.getItem('monBudgetTheme')||'light';
@@ -1000,6 +1000,152 @@ function emptyState(icon,title,text){
   return `<div class="empty-state"><div class="empty-icon">${icon}</div><strong>${title}</strong><small>${text}</small></div>`;
 }
 
+
+function renderFinalToday(){
+  const title=document.getElementById('finalTodayTitle');
+  const text=document.getElementById('finalTodayText');
+  if(!title||!text)return;
+
+  const s=financialSnapshot();
+  const alerts=buildAlerts();
+
+  if(!s.incomeBase){
+    title.textContent='Configure ton revenu';
+    text.textContent='Ajoute ton revenu ou ton plan mensuel pour activer le pilotage complet.';
+    return;
+  }
+  if(s.safeAvailable<0){
+    title.textContent='Budget à surveiller';
+    text.textContent=`Il manque ${eur(Math.abs(s.safeAvailable))} pour couvrir ton plan prudent.`;
+    return;
+  }
+  if(alerts.length){
+    title.textContent=alerts[0].title;
+    text.textContent=alerts[0].text;
+    return;
+  }
+  if(s.savingsStillToReserve>0){
+    title.textContent='Épargne à compléter';
+    text.textContent=`Il reste ${eur(s.savingsStillToReserve)} à mettre de côté ce mois-ci.`;
+    return;
+  }
+  if(s.pendingRecurring>0){
+    title.textContent='Charges à venir';
+    text.textContent=`${eur(s.pendingRecurring)} restent réservés pour les prochaines charges.`;
+    return;
+  }
+
+  title.textContent='Tout va bien';
+  text.textContent='Ton budget est sous contrôle pour le moment.';
+}
+
+
+function monthKeyFromDate(d){
+  const dt=new Date(d);
+  if(Number.isNaN(dt.getTime()))return '';
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+}
+function premiumMonthStats(key){
+  const ops=(state.ops||[]).filter(o=>monthKeyFromDate(o.date)===key);
+  const income=ops.filter(o=>o.type==='income').reduce((s,o)=>s+(+o.amount||0),0);
+  const expenses=ops.filter(o=>o.type==='expense').reduce((s,o)=>s+(+o.amount||0),0);
+  const saved=(state.savingsEntries||[]).filter(e=>monthKeyFromDate(e.date)===key).reduce((s,e)=>s+(+e.amount||0),0);
+  return {income,expenses,saved,balance:income-expenses-saved};
+}
+function renderPremiumProjection(){
+  if(!document.getElementById('premiumProjectionAmount'))return;
+  const snap=financialSnapshot();
+  const now=new Date();
+  const same=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth();
+  const lastDay=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
+  const day=same?now.getDate():Math.min(1,lastDay);
+  const daysLeft=Math.max(0,lastDay-day);
+
+  const key=mk();
+  const ops=(state.ops||[]).filter(o=>monthKeyFromDate(o.date)===key && o.type==='expense');
+  const spent=ops.reduce((s,o)=>s+(+o.amount||0),0);
+  const elapsed=Math.max(1,day);
+  const daily=spent/elapsed;
+  const projectedExtra=daily*daysLeft;
+  const projected=snap.safeAvailable-projectedExtra;
+
+  premiumProjectionAmount.textContent=eur(projected);
+  premiumDailyRate.textContent=eur(daily);
+  premiumDaysLeft.textContent=daysLeft;
+
+  let risk='Faible', stateLabel='Stable', pct=72, txt='';
+  if(projected<0){risk='Élevé';stateLabel='À corriger';pct=22;txt=`À ce rythme, tu pourrais finir le mois à ${eur(projected)}.`}
+  else if(projected < Math.max(100,snap.incomeBase*.08)){risk='Moyen';stateLabel='À surveiller';pct=48;txt=`La marge de sécurité devient faible : environ ${eur(projected)} en fin de mois.`}
+  else {txt=`À ce rythme, tu finirais le mois avec environ ${eur(projected)} disponibles.`}
+
+  premiumRisk.textContent=risk;
+  premiumProjectionState.textContent=stateLabel;
+  premiumProjectionBar.style.width=`${pct}%`;
+  premiumProjectionText.textContent=txt;
+}
+function renderAnnualPremium(){
+  if(!document.getElementById('annualIncome'))return;
+  const y=view.getFullYear();
+  annualPremiumTitle.textContent=String(y);
+  const months=[];
+  let ti=0,te=0,ts=0;
+  for(let m=0;m<12;m++){
+    const key=`${y}-${String(m+1).padStart(2,'0')}`;
+    const s=premiumMonthStats(key);
+    months.push(s);ti+=s.income;te+=s.expenses;ts+=s.saved;
+  }
+  annualIncome.textContent=eur(ti);
+  annualExpenses.textContent=eur(te);
+  annualSaved.textContent=eur(ts);
+  annualBalance.textContent=eur(ti-te-ts);
+
+  const maxVal=Math.max(1,...months.map(x=>Math.max(x.income,x.expenses)));
+  const labels=['J','F','M','A','M','J','J','A','S','O','N','D'];
+  annualChart.innerHTML=months.map((x,i)=>{
+    const h=Math.max(3,Math.round((x.expenses/maxVal)*90));
+    return `<div class="annual-bar-wrap" title="${eur(x.expenses)} dépensés"><div class="annual-bar" style="height:${h}px"></div><span>${labels[i]}</span></div>`;
+  }).join('');
+
+  const active=months.filter(x=>x.income||x.expenses||x.saved);
+  if(active.length<2){
+    annualInsight.textContent='Encore trop peu de données pour comparer tes mois.';
+  }else{
+    const avgExp=te/active.length;
+    const best=months.map((x,i)=>({i,b:x.income-x.expenses-x.saved})).sort((a,b)=>b.b-a.b)[0];
+    annualInsight.textContent=`Dépense moyenne : ${eur(avgExp)} par mois. Ton meilleur solde de l’année est en ${new Date(y,best.i,1).toLocaleDateString('fr-BE',{month:'long'})} avec ${eur(best.b)}.`;
+  }
+}
+function addPatrimonyItem(type){
+  if(!state.patrimony)state.patrimony={assets:[],debts:[]};
+  state.patrimony[type].push({name:type==='assets'?'Nouvel actif':'Nouvelle dette',amount:0});
+  save();renderPatrimony();
+}
+function updatePatrimonyItem(type,index,field,value){
+  const item=state.patrimony?.[type]?.[index];if(!item)return;
+  item[field]=field==='amount'?(+value||0):String(value);
+  save();renderPatrimony();
+}
+function removePatrimonyItem(type,index){
+  state.patrimony?.[type]?.splice(index,1);
+  save();renderPatrimony();
+}
+function patrimonyRow(type,item,i){
+  return `<div class="patrimony-row">
+    <input value="${String(item.name||'').replace(/"/g,'&quot;')}" onchange="updatePatrimonyItem('${type}',${i},'name',this.value)">
+    <input type="number" step="0.01" value="${+item.amount||0}" onchange="updatePatrimonyItem('${type}',${i},'amount',this.value)">
+    <button onclick="removePatrimonyItem('${type}',${i})">×</button>
+  </div>`;
+}
+function renderPatrimony(){
+  if(!document.getElementById('assetRows'))return;
+  if(!state.patrimony)state.patrimony={assets:[],debts:[]};
+  assetRows.innerHTML=(state.patrimony.assets||[]).map((x,i)=>patrimonyRow('assets',x,i)).join('');
+  debtRows.innerHTML=(state.patrimony.debts||[]).map((x,i)=>patrimonyRow('debts',x,i)).join('');
+  const assets=(state.patrimony.assets||[]).reduce((s,x)=>s+(+x.amount||0),0);
+  const debts=(state.patrimony.debts||[]).reduce((s,x)=>s+(+x.amount||0),0);
+  patrimonyNet.textContent=eur(assets-debts);
+}
+
 function render(){
   refreshCats();
   accountSelect.innerHTML=state.accounts.map(a=>`<option value="${a.id}" ${a.id===state.activeAccount?'selected':''}>${a.name}</option>`).join('');
@@ -1020,7 +1166,7 @@ function render(){
   let now=new Date(),same=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth(),last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate(),day=same?now.getDate():1,days=Math.max(1,last-day+1);
   dailyAmount.textContent=eur(Math.max(0,forecast)/days)+' / jour';dailyText.textContent=`${days} jours restants dans le mois.`;
 
-  renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();loadMonthlyPlanInputs();applyDashboardPrefs();applyRecurring();renderCloudStatus();
+  renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();renderFinalToday();renderPremiumProjection();renderAnnualPremium();renderPatrimony();loadMonthlyPlanInputs();applyDashboardPrefs();applyRecurring();renderCloudStatus();
   let td=new Date().toISOString().slice(0,10);if(!eDate.value)eDate.value=td;if(!iDate.value)iDate.value=td;if(!tDate.value)tDate.value=td;save();
 }
 function renderCats(a){let t={};a.filter(x=>x.type==='expense').forEach(x=>t[x.cat]=(t[x.cat]||0)+x.amount);cats.innerHTML=cats.filter?'' : '';document.getElementById('cats').innerHTML=cats.filter(c=>(t[c]||0)>0||(budgets()[c]||0)>0).map(c=>{let s=t[c]||0,l=+budgets()[c]||0,p=l?s/l*100:0;return `<div class="cat"><div class="row"><span><strong>${c}</strong><br><span class="muted">${l?(l-s>=0?eur(l-s)+' restant':eur(s-l)+' dépassé'):'Pas de plafond'}</span></span><b>${eur(s)}${l?' / '+eur(l):''}</b></div><div class="catbar"><div class="catfill" style="width:${l?Math.min(100,p):0}%"></div></div></div>`}).join('')||emptyState('◌','Aucune dépense ici','Tes dépenses apparaîtront ici dès que tu en ajoutes une.')}
@@ -1192,7 +1338,7 @@ async function initCloud(){
   if(currentUser){await loadUserWorkspace();showAuthGate(false)}else showAuthGate(true)
 }
 function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
-function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));return x}
+function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));return x}
 function showAuthGate(v){document.getElementById('authGate')?.classList.toggle('hidden',!v)}
 async function loadUserWorkspace(){if(!currentUser)return;const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
 function renderCloudStatus(){

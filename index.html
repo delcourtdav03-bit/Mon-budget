@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.2</title>
+<title>Mon Budget V24.3 Premium Pack</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.2</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.3</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -29,7 +29,23 @@
 </div>
 <div class="luxe-divider"><span></span></div>
 
+
 <section id="home" class="section active">
+  <div class="finalplus-actions">
+    <button onclick="openQuickExpense()"><span>−</span><small>Dépense</small></button>
+    <button onclick="quickNav('incomeForm')"><span>＋</span><small>Revenu</small></button>
+    <button onclick="openSavingPanel()"><span>◇</span><small>Épargne</small></button>
+  </div>
+
+  <div class="finalplus-today">
+    <div class="finalplus-icon">✦</div>
+    <div>
+      <div class="label">À retenir aujourd’hui</div>
+      <strong id="finalTodayTitle">Tout va bien</strong>
+      <p id="finalTodayText">Ton budget est sous contrôle.</p>
+    </div>
+  </div>
+
   <div class="card">
     <div class="accountrow">
       <div style="flex:1"><div class="label">Compte actif</div><select id="accountSelect"></select></div>
@@ -53,7 +69,32 @@
 
 <div class="card"><div class="monthnav"><button onclick="changeMonth(-1)">‹</button><div class="monthname" id="month"></div><button onclick="changeMonth(1)">›</button></div></div>
 
-  <div class="card hero-lux">
+  
+<div class="card premium-projection-card">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Projection</div>
+      <h3>Fin de mois</h3>
+    </div>
+    <span class="qa-badge">Premium</span>
+  </div>
+  <div class="projection-main">
+    <div>
+      <span class="muted">Solde estimé</span>
+      <strong id="premiumProjectionAmount">0 €</strong>
+    </div>
+    <div class="projection-state" id="premiumProjectionState">Stable</div>
+  </div>
+  <div class="projection-track"><span id="premiumProjectionBar"></span></div>
+  <div class="projection-grid">
+    <div><span>Rythme/jour</span><b id="premiumDailyRate">0 €</b></div>
+    <div><span>Jours restants</span><b id="premiumDaysLeft">0</b></div>
+    <div><span>Risque</span><b id="premiumRisk">Faible</b></div>
+  </div>
+  <div class="muted top" id="premiumProjectionText">Analyse en cours…</div>
+</div>
+
+<div class="card hero-lux">
     <div class="hero-orb"></div>
     <div class="hero-top">
       <div>
@@ -276,6 +317,25 @@
 </section>
 
 <section id="stats" class="section">
+
+<div class="card annual-premium-card">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Rapport annuel</div>
+      <h3 id="annualPremiumTitle">Année</h3>
+    </div>
+    <span class="qa-badge">12 mois</span>
+  </div>
+  <div class="annual-kpis">
+    <div><span>Revenus</span><b id="annualIncome">0 €</b></div>
+    <div><span>Dépenses</span><b id="annualExpenses">0 €</b></div>
+    <div><span>Épargné</span><b id="annualSaved">0 €</b></div>
+    <div><span>Solde</span><b id="annualBalance">0 €</b></div>
+  </div>
+  <div class="annual-chart" id="annualChart"></div>
+  <div class="insight-premium" id="annualInsight">Pas encore assez de données.</div>
+</div>
+
 <div class="card report-entry">
   <div>
     <div class="label">Bilan mensuel</div>
@@ -300,6 +360,32 @@
 </section>
 
 <section id="plan" class="section">
+
+<div class="card patrimony-card">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Patrimoine</div>
+      <h3>Valeur nette</h3>
+    </div>
+    <span class="qa-badge">Nouveau</span>
+  </div>
+  <div class="patrimony-net" id="patrimonyNet">0 €</div>
+  <div class="muted">Actifs - dettes</div>
+
+  <div class="patrimony-columns">
+    <div>
+      <div class="subtle-title">Actifs</div>
+      <div id="assetRows"></div>
+      <button class="secondary compact full" onclick="addPatrimonyItem('assets')">+ Ajouter un actif</button>
+    </div>
+    <div>
+      <div class="subtle-title">Dettes</div>
+      <div id="debtRows"></div>
+      <button class="secondary compact full" onclick="addPatrimonyItem('debts')">+ Ajouter une dette</button>
+    </div>
+  </div>
+</div>
+
 <div class="card goals-showcase">
   <div class="rowtitle"><h3>Mes objectifs</h3><span class="muted">Construire demain</span></div>
   <div id="goalShowcase"></div>
