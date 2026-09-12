@@ -1229,3 +1229,16 @@ input:focus,select:focus,textarea:focus{
   #cats .cat-amounts{min-width:102px}
   #cats .catfooter{flex-direction:column;align-items:flex-start}
 }
+
+
+/* V24.3.3 Scanner Fix */
+.scan-tip{
+  margin-top:8px;
+  font-size:11px;
+  line-height:1.4;
+  color:#8e999f;
+  padding:9px 11px;
+  border-radius:12px;
+  background:#0b151a;
+  border:1px solid #1b2b32;
+}

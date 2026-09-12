@@ -6,6 +6,13 @@ function baseDisplayName(c){return state?.categoryRenames?.[c]||c}
 function isBaseDisplay(name){return baseCats.some(c=>baseDisplayName(c)===name)}
 function allCats(){return [...new Set([...baseCats.map(baseDisplayName),...(state?.customCategories||[])])]} 
 let cats=baseCats.slice();
+
+function escHTML(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
+}
+
 const eur=n=>new Intl.NumberFormat('fr-BE',{style:'currency',currency:'EUR'}).format(+n||0);
 function findExistingBudgetData(){
   // 1) Exact key already used by the installed V24.x app.
@@ -328,44 +335,104 @@ function resetScanner(){
 }
 
 function normalizeReceiptText(text){
-  return (text||'').replace(/\r/g,'\n').replace(/[ \t]+/g,' ').trim();
+  return (text||'')
+    .replace(/\r/g,'\n')
+    .replace(/[ \t]+/g,' ')
+    .replace(/[|]/g,'I')
+    .replace(/[“”]/g,'"')
+    .trim();
+}
+
+function receiptAmountNumbers(line){
+  if(!line)return [];
+  let s=line
+    .replace(/(\d)\s*[,.]\s*(\d{2})\b/g,'$1,$2')
+    .replace(/\b(\d{1,5})\s+(\d{2})\s*€?\b/g,'$1,$2');
+
+  const out=[];
+  for(const m of s.matchAll(/(?:€\s*)?(\d{1,5})[,.](\d{2})(?:\s*€)?/g)){
+    const v=parseFloat(`${m[1]}.${m[2]}`);
+    if(Number.isFinite(v) && v>=0 && v<100000)out.push(v);
+  }
+  return out;
+}
+
+function merchantScore(line,index){
+  const l=line.trim();
+  const low=l.toLowerCase();
+  if(!/[A-Za-zÀ-ÿ]{3}/.test(l))return -999;
+  if(/\b(ticket|receipt|reçu|facture|duplicata|date|heure|total|tva|vat|merci|caisse|terminal|bancontact|visa|mastercard|adresse|tel|tél|www\.|http|be\d{8,})\b/i.test(l))return -15;
+  if(/^\s*\d[\d\s./-]{4,}\s*$/.test(l))return -15;
+  let score=18-index*1.3;
+  if(/[A-ZÀ-Ý]{3,}/.test(l))score+=3;
+  if(l.length>=4 && l.length<=35)score+=3;
+  if(/\b(sa|sprl|srl|nv|bv|store|market|shop|restaurant|cafe|café|supermarkt)\b/i.test(l))score+=2;
+  if(/[@]|(?:\d{4}\s?[A-Z]{2})/.test(l))score-=5;
+  return score;
 }
 
 function extractReceiptData(text){
   const raw=normalizeReceiptText(text);
   const lines=raw.split('\n').map(x=>x.trim()).filter(Boolean);
 
-  // merchant: first meaningful line without mostly digits
-  let merchant=lines.find(l=>/[A-Za-zÀ-ÿ]{3}/.test(l) && !/^(ticket|reçu|receipt|facture|date|total|tva|vat)\b/i.test(l))||'';
-  merchant=merchant.replace(/[^\wÀ-ÿ&' .-]/g,'').trim().slice(0,60);
+  // MERCHANT: score the first visible lines rather than blindly taking line 1.
+  const merchantCandidates=lines.slice(0,12)
+    .map((line,i)=>({line,score:merchantScore(line,i)}))
+    .sort((a,b)=>b.score-a.score);
+  let merchant=(merchantCandidates[0]?.score>0?merchantCandidates[0].line:'')||'';
+  merchant=merchant
+    .replace(/[^\wÀ-ÿ&' .-]/g,' ')
+    .replace(/\s{2,}/g,' ')
+    .trim()
+    .slice(0,60);
 
-  // dates: dd/mm/yyyy, dd-mm-yyyy, yyyy-mm-dd
+  // DATE
   let date='';
-  const dm=raw.match(/\b(0?[1-9]|[12]\d|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.](20\d{2}|\d{2})\b/);
-  const ym=raw.match(/\b(20\d{2})[\/\-.](0?[1-9]|1[0-2])[\/\-.](0?[1-9]|[12]\d|3[01])\b/);
+  const datePatterns=[
+    /\b(0?[1-9]|[12]\d|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.](20\d{2}|\d{2})\b/,
+    /\b(20\d{2})[\/\-.](0?[1-9]|1[0-2])[\/\-.](0?[1-9]|[12]\d|3[01])\b/
+  ];
+  const dm=raw.match(datePatterns[0]);
+  const ym=raw.match(datePatterns[1]);
   if(dm){
-    let y=dm[3].length===2?'20'+dm[3]:dm[3];
+    const y=dm[3].length===2?'20'+dm[3]:dm[3];
     date=`${y}-${String(dm[2]).padStart(2,'0')}-${String(dm[1]).padStart(2,'0')}`;
   }else if(ym){
     date=`${ym[1]}-${String(ym[2]).padStart(2,'0')}-${String(ym[3]).padStart(2,'0')}`;
   }
 
-  // amounts near TOTAL/TOTAL TTC first
+  // TOTAL: rank candidates by wording. Do not assume the largest number is correct.
+  const ranked=[];
+  lines.forEach((line,i)=>{
+    const low=line.toLowerCase();
+    const vals=receiptAmountNumbers(line);
+    if(!vals.length)return;
+
+    let score=0;
+    if(/\b(total\s*ttc|total\s+à\s+payer|total\s+a\s+payer|net\s+à\s+payer|net\s+a\s+payer|montant\s+à\s+payer|montant\s+a\s+payer)\b/i.test(line))score+=100;
+    else if(/\b(à\s+payer|a\s+payer|total|amount due|grand total)\b/i.test(line))score+=75;
+    else if(/\b(carte|bancontact|visa|mastercard|payment|paiement)\b/i.test(line))score+=38;
+
+    if(/\b(sous[- ]?total|subtotal|tva|vat|taxe|tax|htva|hors taxe|remise|discount|rendu|monnaie|change|esp[eè]ces|cash reçu|cash recu)\b/i.test(line))score-=70;
+    if(/\b(total tva|tva total)\b/i.test(line))score-=90;
+
+    // Totals are often located in the lower half of a receipt.
+    score += Math.min(15, i/Math.max(1,lines.length)*15);
+
+    vals.forEach(v=>ranked.push({value:v,score,line,index:i}));
+  });
+
   let amount=null;
-  const totalLines=lines.filter(l=>/\b(total|total ttc|à payer|a payer|montant|amount)\b/i.test(l));
-  const candidates=[];
-  const parseAmounts=line=>{
-    const ms=[...line.matchAll(/(?:€\s*)?(\d{1,5}(?:[.,]\d{2}))(?:\s*€)?/g)];
-    ms.forEach(m=>candidates.push(parseFloat(m[1].replace(',','.'))));
-  };
-  totalLines.forEach(parseAmounts);
-  if(candidates.length) amount=Math.max(...candidates);
-  else{
-    const all=[];
-    lines.forEach(line=>{
-      [...line.matchAll(/(?:€\s*)?(\d{1,5}(?:[.,]\d{2}))(?:\s*€)?/g)].forEach(m=>all.push(parseFloat(m[1].replace(',','.'))));
-    });
-    if(all.length) amount=Math.max(...all.filter(x=>x<100000));
+  if(ranked.length){
+    ranked.sort((a,b)=>b.score-a.score || b.index-a.index || b.value-a.value);
+    if(ranked[0].score>15){
+      amount=ranked[0].value;
+    }else{
+      // Fallback: prefer a plausible amount from the last third of the receipt.
+      const late=ranked.filter(x=>x.index>=Math.floor(lines.length*.55) && x.value>0);
+      const pool=late.length?late:ranked;
+      amount=pool.sort((a,b)=>b.index-a.index || b.value-a.value)[0]?.value??null;
+    }
   }
 
   let category='Autres';
@@ -378,20 +445,55 @@ function extractReceiptData(text){
     [['restaurant','pizza','burger','cafe','café','mcdonald','quick'],'Loisirs'],
     [['h&m','zara','primark','decathlon','nike','adidas'],'Shopping']
   ];
-  for(const [keys,cat] of rules){if(keys.some(k=>low.includes(k))){category=cat;break}}
+  for(const [keys,cat] of rules){
+    if(keys.some(k=>low.includes(k))){category=cat;break}
+  }
   category=applyRules(merchant,category);
 
   return {merchant,amount,date,category,raw};
 }
 
+async function preprocessReceiptImage(file){
+  const bitmap=await createImageBitmap(file);
+  const maxW=1800;
+  const scale=Math.min(2.2,maxW/bitmap.width);
+  const w=Math.max(bitmap.width,Math.round(bitmap.width*scale));
+  const h=Math.round(bitmap.height*(w/bitmap.width));
+
+  const canvas=document.createElement('canvas');
+  canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(bitmap,0,0,w,h);
+
+  const img=ctx.getImageData(0,0,w,h);
+  const d=img.data;
+
+  // grayscale + contrast + slight thresholding while preserving anti-aliasing
+  for(let i=0;i<d.length;i+=4){
+    const gray=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+    let v=(gray-128)*1.55+128;
+    if(v>210)v=255;
+    else if(v<55)v=0;
+    v=Math.max(0,Math.min(255,v));
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(img,0,0);
+  return canvas;
+}
+
 async function analyzeReceipt(){
   if(!receiptFile)return alert('Choisis d’abord une photo.');
   if(typeof Tesseract==='undefined')return alert('Le module de lecture du ticket n’est pas disponible. Vérifie ta connexion internet.');
+
   scanProgress.className='scan-progress active';
-  scanProgress.textContent='Analyse du ticket… 0 %';
+  scanProgress.textContent='Préparation de l’image…';
   scanResult.classList.add('hidden');
+
   try{
-    const result=await Tesseract.recognize(receiptFile,'fra+eng',{
+    const processed=await preprocessReceiptImage(receiptFile);
+    scanProgress.textContent='Analyse du ticket… 0 %';
+
+    const result=await Tesseract.recognize(processed,'fra+eng',{
       logger:m=>{
         if(m.status==='recognizing text'){
           scanProgress.textContent='Lecture du ticket… '+Math.round((m.progress||0)*100)+' %';
@@ -400,18 +502,27 @@ async function analyzeReceipt(){
         }
       }
     });
+
     const data=extractReceiptData(result.data.text||'');
     scanMerchant.value=data.merchant||'';
-    scanAmount.value=data.amount?data.amount.toFixed(2):'';
-    scanDate.value=data.date||new Date().toISOString().slice(0,10);
+    scanAmount.value=data.amount!=null?Number(data.amount).toFixed(2):'';
+    scanDate.value=data.date||entryDateForView();
     scanCategory.value=data.category||'Autres';
     scanRawText.textContent=data.raw||'Aucun texte détecté.';
     scanResult.classList.remove('hidden');
     scanProgress.className='scan-progress';
-    scanProgress.textContent='Analyse terminée. Vérifie les informations avant de valider.';
+
+    const missing=[];
+    if(!data.merchant)missing.push('commerçant');
+    if(data.amount==null)missing.push('montant');
+    if(!data.date)missing.push('date');
+
+    scanProgress.textContent=missing.length
+      ? 'Lecture terminée. Vérifie surtout : '+missing.join(', ')+'.'
+      : 'Lecture terminée. Vérifie les informations avant de valider.';
   }catch(err){
     scanProgress.className='scan-progress';
-    scanProgress.textContent='Impossible de lire ce ticket. Essaie une photo plus nette.';
+    scanProgress.textContent='Impossible de lire ce ticket. Essaie une photo prise bien à plat et plus nette.';
     console.error(err);
   }
 }
@@ -442,11 +553,31 @@ function useScanResult(){
 function renderPredictions(){
   const el=document.getElementById('predictionList'); if(!el)return;
   const current=mo().filter(x=>x.type==='expense');
-  const now=new Date(),same=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth();
-  const day=Math.max(1,same?now.getDate():1),last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
-  const spent=current.reduce((s,x)=>s+x.amount,0),rate=spent/day,projected=rate*last;
-  const rows=[];
+  const now=new Date();
+  const currentMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const viewedMonth=new Date(view.getFullYear(),view.getMonth(),1);
+  const same=viewedMonth.getTime()===currentMonth.getTime();
   const totalBudget=cats.reduce((s,c)=>s+(+budgets()[c]||0),0);
+  const spent=current.reduce((s,x)=>s+x.amount,0);
+
+  if(!same){
+    if(viewedMonth<currentMonth){
+      if(totalBudget>0){
+        const diff=spent-totalBudget;
+        el.innerHTML=`<div class="prediction ${diff>0?'warnx':''}"><strong>Bilan du mois</strong><div>${diff>0?`Budget dépassé de ${eur(diff)}.`:`Tu as terminé ${eur(totalBudget-spent)} sous ton budget.`}</div></div>`;
+      }else{
+        el.innerHTML='<div class="muted">Mois clôturé. Ajoute un budget pour obtenir un bilan comparatif.</div>';
+      }
+    }else{
+      el.innerHTML='<div class="muted">Les projections de rythme s’activent sur le mois en cours. Pour ce mois futur, le plan et les charges prévues restent réservés.</div>';
+    }
+    return;
+  }
+
+  const day=Math.max(1,now.getDate());
+  const last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
+  const rate=spent/day,projected=rate*last;
+  const rows=[];
   if(totalBudget>0){
     const diff=projected-totalBudget;
     rows.push(diff>0?['Budget global',`À ce rythme, tu risques de dépasser ton budget d’environ ${eur(diff)}.`,'warnx']:['Budget global',`À ce rythme, tu terminerais environ ${eur(totalBudget-projected)} sous ton budget.`,'']);
@@ -458,7 +589,7 @@ function renderPredictions(){
     const proj=spentCat/day*last;
     if(proj>lim*1.05)rows.push([c,`Projection : ${eur(proj)} pour un plafond de ${eur(lim)}.`,'warnx']);
   });
-  el.innerHTML=rows.length?rows.slice(0,5).map(([t,m,cl])=>`<div class="prediction ${cl}"><strong>${t}</strong><div>${m}</div></div>`).join(''):'<div class="muted">Ajoute des budgets et quelques dépenses pour activer les prévisions.</div>';
+  el.innerHTML=rows.length?rows.slice(0,5).map(([t,m,cl])=>`<div class="prediction ${cl}"><strong>${escHTML(t)}</strong><div>${escHTML(m)}</div></div>`).join(''):'<div class="muted">Ajoute des budgets et quelques dépenses pour activer les prévisions.</div>';
 }
 
 function recurringCandidates(){
@@ -682,8 +813,9 @@ function entryDateForView(){
   const now=new Date();
   if(now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth())return now.toISOString().slice(0,10);
   const last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
-  const d=new Date(view.getFullYear(),view.getMonth(),Math.min(1,last));
-  return d.toISOString().slice(0,10);
+  const d=new Date(view.getFullYear(),view.getMonth(),Math.min(now.getDate(),last));
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
 }
 function adjustGoalFromSaving(entry,delta){
   if(!entry?.goalId||!delta)return;
@@ -918,7 +1050,7 @@ function closeQuickExpense(){document.getElementById('quickExpenseModal')?.class
 function saveQuickExpense(){
   const amount=+document.getElementById('qeAmount').value||0;
   if(!amount)return;
-  const date=new Date().toISOString().slice(0,10)+'T12:00:00';
+  const date=entryDateForView()+'T12:00:00';
   state.ops.push({
     id:'op_'+Date.now(),type:'expense',name:document.getElementById('qeCat').value||'Dépense',
     amount,cat:document.getElementById('qeCat').value||'Autres',nature:'variable',
@@ -973,11 +1105,14 @@ function buildAlerts(){
   if(plannedSavings>0 && actualSavings<plannedSavings*.5)alerts.push({type:'warn',icon:'↗',title:'Épargne à surveiller',text:`Il reste ${eur(plannedSavings-actualSavings)} à mettre de côté.`});
 
   const now=new Date();
-  const day=now.getDate();
-  state.recurring.filter(r=>r.accountId===state.activeAccount).forEach(r=>{
-    const delta=(+r.day||1)-day;
-    if(delta>=0 && delta<=3)alerts.push({type:'warn',icon:'⌛',title:`${r.name} arrive bientôt`,text:`${eur(r.amount)} prévu${delta===0?" aujourd’hui":` dans ${delta} jour${delta>1?'s':''}`}.`});
-  });
+  const isCurrentView=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth();
+  if(isCurrentView){
+    const day=now.getDate();
+    state.recurring.filter(r=>r.accountId===state.activeAccount).forEach(r=>{
+      const delta=(+r.day||1)-day;
+      if(delta>=0 && delta<=3)alerts.push({type:'warn',icon:'⌛',title:`${r.name} arrive bientôt`,text:`${eur(r.amount)} prévu${delta===0?" aujourd’hui":` dans ${delta} jour${delta>1?'s':''}`}.`});
+    });
+  }
 
   const budgetsObj=budgets();
   cats.forEach(c=>{
@@ -1043,13 +1178,16 @@ function deleteCustomCategory(name){
 }
 function renderCategoryManager(){
   const el=document.getElementById('categoryManager');if(!el)return;
-  el.innerHTML=allCats().map(c=>`<div class="category-row">
-    <span>${c}</span>
-    <div class="category-actions">
-      <button class="secondary" onclick="renameCategory('${c.replace(/'/g,"\'")}')">Renommer</button>
-      ${isBaseDisplay(c)?'':`<button class="secondary" onclick="deleteCustomCategory('${c.replace(/'/g,"\'")}')">Supprimer</button>`}
-    </div>
-  </div>`).join('');
+  el.innerHTML=allCats().map(c=>{
+    const enc=encodeURIComponent(c);
+    return `<div class="category-row">
+      <span>${escHTML(c)}</span>
+      <div class="category-actions">
+        <button class="secondary" onclick="renameCategory(decodeURIComponent('${enc}'))">Renommer</button>
+        ${isBaseDisplay(c)?'':`<button class="secondary" onclick="deleteCustomCategory(decodeURIComponent('${enc}'))">Supprimer</button>`}
+      </div>
+    </div>`;
+  }).join('');
 }
 function emptyState(icon,title,text){
   return `<div class="empty-state"><div class="empty-icon">${icon}</div><strong>${title}</strong><small>${text}</small></div>`;
@@ -1111,28 +1249,42 @@ function renderPremiumProjection(){
   if(!document.getElementById('premiumProjectionAmount'))return;
   const snap=financialSnapshot();
   const now=new Date();
-  const same=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth();
+  const currentMonth=new Date(now.getFullYear(),now.getMonth(),1);
+  const viewedMonth=new Date(view.getFullYear(),view.getMonth(),1);
+  const same=viewedMonth.getTime()===currentMonth.getTime();
   const lastDay=new Date(view.getFullYear(),view.getMonth()+1,0).getDate();
-  const day=same?now.getDate():Math.min(1,lastDay);
-  const daysLeft=Math.max(0,lastDay-day);
 
   const key=mk();
   const ops=(state.ops||[]).filter(o=>monthKeyFromDate(o.date)===key && o.type==='expense');
   const spent=ops.reduce((s,o)=>s+(+o.amount||0),0);
-  const elapsed=Math.max(1,day);
-  const daily=spent/elapsed;
-  const projectedExtra=daily*daysLeft;
-  const projected=snap.safeAvailable-projectedExtra;
+
+  let daily=0,daysLeft=0,projected=snap.safeAvailable;
+  let risk='Faible',stateLabel='Stable',pct=72,txt='';
+
+  if(same){
+    const day=Math.max(1,now.getDate());
+    daysLeft=Math.max(0,lastDay-day);
+    daily=spent/day;
+    projected=snap.safeAvailable-(daily*daysLeft);
+    if(projected<0){risk='Élevé';stateLabel='À corriger';pct=22;txt=`À ce rythme, tu pourrais finir le mois à ${eur(projected)}.`}
+    else if(projected<Math.max(100,snap.incomeBase*.08)){risk='Moyen';stateLabel='À surveiller';pct=48;txt=`La marge de sécurité devient faible : environ ${eur(projected)} en fin de mois.`}
+    else txt=`À ce rythme, tu finirais le mois avec environ ${eur(projected)} disponibles.`;
+  }else if(viewedMonth<currentMonth){
+    stateLabel='Clôturé';
+    risk=projected<0?'Élevé':'—';
+    pct=projected<0?25:100;
+    txt=`Solde prudent constaté pour ce mois : ${eur(projected)}.`;
+  }else{
+    stateLabel='Prévu';
+    risk=projected<0?'Élevé':projected<Math.max(100,snap.incomeBase*.08)?'Moyen':'Faible';
+    pct=projected<0?22:risk==='Moyen'?48:72;
+    daysLeft=lastDay;
+    txt=`Prévision basée sur ton plan, ton épargne et tes charges récurrentes : ${eur(projected)} disponibles.`;
+  }
 
   premiumProjectionAmount.textContent=eur(projected);
-  premiumDailyRate.textContent=eur(daily);
-  premiumDaysLeft.textContent=daysLeft;
-
-  let risk='Faible', stateLabel='Stable', pct=72, txt='';
-  if(projected<0){risk='Élevé';stateLabel='À corriger';pct=22;txt=`À ce rythme, tu pourrais finir le mois à ${eur(projected)}.`}
-  else if(projected < Math.max(100,snap.incomeBase*.08)){risk='Moyen';stateLabel='À surveiller';pct=48;txt=`La marge de sécurité devient faible : environ ${eur(projected)} en fin de mois.`}
-  else {txt=`À ce rythme, tu finirais le mois avec environ ${eur(projected)} disponibles.`}
-
+  premiumDailyRate.textContent=same?eur(daily):'—';
+  premiumDaysLeft.textContent=same?daysLeft:'—';
   premiumRisk.textContent=risk;
   premiumProjectionState.textContent=stateLabel;
   premiumProjectionBar.style.width=`${pct}%`;
@@ -1211,6 +1363,7 @@ function showDataMigrationNotice(){
 
 function render(){
   refreshCats();
+  applyRecurring();
   accountSelect.innerHTML=state.accounts.map(a=>`<option value="${a.id}" ${a.id===state.activeAccount?'selected':''}>${a.name}</option>`).join('');
   accountSelect.onchange=e=>{state.activeAccount=e.target.value;render()};
   const co=cats.map(c=>`<option>${c}</option>`).join('');eCat.innerHTML=co;rCat.innerHTML=co;filterCat.innerHTML='<option value="">Toutes catégories</option>'+co;if(document.getElementById('tplCat'))tplCat.innerHTML=co;if(document.getElementById('ruleCat'))ruleCat.innerHTML=co;if(document.getElementById('scanCategory'))scanCategory.innerHTML=co;if(document.getElementById('savingDate')&&!savingDate.value)savingDate.value=new Date().toISOString().slice(0,10);
@@ -1227,9 +1380,15 @@ function render(){
   let future=snap.pendingRecurring,forecast=snap.safeAvailable;
   forecastAmount.textContent=eur(forecast);forecastText.textContent=`Après ${eur(future)} de charges récurrentes restantes et ${eur(snap.plannedSaved)} d’épargne prévue.`;if(sf)sf.textContent=eur(forecast);
   let now=new Date(),same=now.getFullYear()===view.getFullYear()&&now.getMonth()===view.getMonth(),last=new Date(view.getFullYear(),view.getMonth()+1,0).getDate(),day=same?now.getDate():1,days=Math.max(1,last-day+1);
-  dailyAmount.textContent=eur(Math.max(0,forecast)/days)+' / jour';dailyText.textContent=`${days} jours restants dans le mois.`;
+  if(same){
+    dailyAmount.textContent=eur(Math.max(0,forecast)/days)+' / jour';
+    dailyText.textContent=`${days} jours restants dans le mois.`;
+  }else{
+    dailyAmount.textContent='—';
+    dailyText.textContent=view<new Date(now.getFullYear(),now.getMonth(),1)?'Mois clôturé.':'Le rythme quotidien apparaîtra au début de ce mois.';
+  }
 
-  renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();renderFinalToday();renderPremiumProjection();renderAnnualPremium();renderPatrimony();loadMonthlyPlanInputs();applyDashboardPrefs();applyRecurring();renderCloudStatus();
+  renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();renderFinalToday();renderPremiumProjection();renderAnnualPremium();renderPatrimony();loadMonthlyPlanInputs();applyDashboardPrefs();renderCloudStatus();
   let td=new Date().toISOString().slice(0,10);if(!eDate.value)eDate.value=td;if(!iDate.value)iDate.value=td;if(!tDate.value)tDate.value=td;save();
 }
 function renderCats(a){
@@ -1278,7 +1437,7 @@ function renderCats(a){
     return `<div class="cat">
       <div class="row">
         <div class="cat-left">
-          <span class="cat-name">${label}</span>
+          <span class="cat-name">${escHTML(label)}</span>
           <span class="cat-sub">${subText}</span>
         </div>
         <div class="cat-amounts">

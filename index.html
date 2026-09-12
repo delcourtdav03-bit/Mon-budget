@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.3.1 Data Safe</title>
+<title>Mon Budget V24.3.3 Scanner Fix</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.3.1</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.3.3</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -248,7 +248,7 @@
   <div class="rowtitle"><h3>Scanner un ticket</h3><span class="muted">V14</span></div>
   <div class="muted">Prends une photo ou choisis une image. L’app essaie de détecter automatiquement le commerçant, la date et le total.</div>
   <input id="receiptInput" type="file" accept="image/*" capture="environment" hidden onchange="handleReceipt(this.files[0])">
-  <button class="primary top" onclick="document.getElementById('receiptInput').click()">📷 Prendre / choisir une photo</button>
+  <button class="primary top" onclick="document.getElementById('receiptInput').click()">📷 Prendre / choisir une photo</button><div class="scan-tip">Astuce : ticket bien à plat, sans ombre, cadré serré et texte net.</div>
   <div id="scanArea" class="hidden top">
     <img id="receiptPreview" class="receipt-preview" alt="Aperçu ticket">
     <div id="scanProgress" class="scan-progress">Image chargée.</div>

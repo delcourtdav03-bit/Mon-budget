@@ -1,11 +1,11 @@
 {
-  "name": "Mon Budget V24.3.1 Data Safe",
+  "name": "Mon Budget V24.3.3 Scanner Fix",
   "short_name": "Mon Budget",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#071015",
   "theme_color": "#071015",
-  "description": "V24.3.1 avec correctif catégories et migration sécurisée des données V24.3.",
+  "description": "Scanner de tickets amélioré avec prétraitement et extraction plus robuste.",
   "icons": [
     {
       "src": "./icon-192.png",
