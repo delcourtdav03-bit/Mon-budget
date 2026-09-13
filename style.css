@@ -1516,3 +1516,28 @@ input:focus,select:focus,textarea:focus{
   background:#122a22;
   color:#8fe5c6;
 }
+
+
+/* V24.3.9 — Logo Final */
+.brandmark{
+  overflow:hidden;
+  padding:0 !important;
+  background:#071015 !important;
+  border:1px solid rgba(121,232,192,.24);
+  box-shadow:
+    0 12px 32px rgba(66,184,145,.16),
+    0 0 0 1px rgba(255,255,255,.018) inset !important;
+}
+.brandmark img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:inherit;
+}
+.auth-logo,
+.onboard-logo{
+  width:58px !important;
+  height:58px !important;
+  border-radius:18px !important;
+}
