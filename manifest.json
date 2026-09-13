@@ -1,11 +1,11 @@
 {
-  "name": "Mon Budget V24.3.5 Épargne Enveloppes",
+  "name": "Mon Budget V24.3.6 Épargne Libre",
   "short_name": "Mon Budget",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#071015",
   "theme_color": "#071015",
-  "description": "Épargne répartie dans des enveloppes personnalisables.",
+  "description": "Épargne libre avec solde réel modulable, retraits et ajustements.",
   "icons": [
     {
       "src": "./icon-192.png",

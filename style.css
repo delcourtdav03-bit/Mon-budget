@@ -1389,3 +1389,75 @@ input:focus,select:focus,textarea:focus{
   .envelope-head{grid-template-columns:auto 1fr}
   .envelope-value{grid-column:2;text-align:left}
 }
+
+
+/* V24.3.6 — Free savings balance */
+.free-savings-card{
+  padding:15px;
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 100% 0,rgba(121,232,192,.09),transparent 28%),
+    linear-gradient(145deg,#101e24,#0a151a);
+  border:1px solid #22353c;
+}
+.free-savings-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+.free-savings-head strong{
+  display:block;
+  margin:5px 0 4px;
+  font-size:30px;
+  letter-spacing:-.045em;
+}
+.free-savings-icon{
+  width:44px;height:44px;
+  display:grid;place-items:center;
+  border-radius:15px;
+  background:#142a22;
+  border:1px solid #28503f;
+  font-size:20px;
+}
+.free-savings-actions{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+  margin-top:13px;
+}
+.free-savings-actions button{
+  padding:10px 7px;
+  font-size:10px;
+}
+.free-savings-help{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.4;
+}
+.free-movements{
+  margin-top:10px;
+  display:grid;
+  gap:6px;
+}
+.free-move{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:12px;
+  background:#091318;
+  border:1px solid #192b32;
+  font-size:10px;
+}
+.free-move .meta{
+  color:#8e999f;
+  min-width:0;
+}
+.free-move b.plus{color:#79e8c0}
+.free-move b.minus{color:#ffaaa4}
+@media(max-width:420px){
+  .free-savings-actions{grid-template-columns:1fr 1fr}
+  .free-savings-actions button:last-child{grid-column:1/-1}
+}

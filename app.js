@@ -71,7 +71,7 @@ if(existingBudget?.key && existingBudget.key!==KEY){
   }catch(e){}
 }
 let state=raw?JSON.parse(raw):{accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[]};
-if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.savingsEnvelopes)state.savingsEnvelopes=[];if(!state.patrimony)state.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
+if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.savingsEnvelopes)state.savingsEnvelopes=[];if(!state.freeSavingsBalances)state.freeSavingsBalances={};if(!state.freeSavingsMovements)state.freeSavingsMovements=[];if(!state.patrimony)state.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
 state.ops=(state.ops||[]).map(x=>({...x,id:x.id||'op_'+Date.now()+Math.random(),accountId:x.accountId||'main',scope:x.scope||'personal',tags:Array.isArray(x.tags)?x.tags:[]}));
 let view=new Date();view.setDate(1);
 const savedTheme=localStorage.getItem('monBudgetTheme')||'light';
@@ -795,6 +795,90 @@ function applyDashboardPrefs(){
 
 
 
+
+function freeSavingsBalanceValue(){
+  if(!state.freeSavingsBalances)state.freeSavingsBalances={};
+  return Math.max(0,+state.freeSavingsBalances[state.activeAccount]||0);
+}
+function setFreeSavingsBalanceValue(value){
+  if(!state.freeSavingsBalances)state.freeSavingsBalances={};
+  state.freeSavingsBalances[state.activeAccount]=Math.max(0,+value||0);
+}
+function logFreeSavingsMovement(amount,note,source='manual'){
+  if(!state.freeSavingsMovements)state.freeSavingsMovements=[];
+  state.freeSavingsMovements.push({
+    id:'fsm_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    amount:+amount||0,
+    note:note||'Mouvement',
+    source,
+    date:new Date().toISOString(),
+    accountId:state.activeAccount
+  });
+}
+function changeFreeSavingsBalance(delta,note,source='manual',log=true){
+  const current=freeSavingsBalanceValue();
+  const next=Math.max(0,current+(+delta||0));
+  const actual=next-current;
+  setFreeSavingsBalanceValue(next);
+  if(log && actual!==0)logFreeSavingsMovement(actual,note,source);
+  return actual;
+}
+function addFreeSavings(){
+  const raw=prompt('Montant à ajouter à ton épargne libre');
+  if(raw===null)return;
+  const amount=+String(raw).replace(',','.')||0;
+  if(amount<=0)return showToast('Entre un montant supérieur à 0 €');
+  changeFreeSavingsBalance(amount,'Ajout manuel','manual',true);
+  save();render();showToast(`+ ${eur(amount)} en épargne libre`);
+}
+function withdrawFreeSavings(){
+  const current=freeSavingsBalanceValue();
+  if(current<=0)return showToast('Ton épargne libre est déjà à 0 €');
+  const raw=prompt(`Montant à retirer (maximum ${eur(current)})`);
+  if(raw===null)return;
+  const amount=+String(raw).replace(',','.')||0;
+  if(amount<=0)return showToast('Entre un montant supérieur à 0 €');
+  if(amount>current)return showToast('Tu ne peux pas retirer plus que ton solde libre');
+  changeFreeSavingsBalance(-amount,'Retrait manuel','manual',true);
+  save();render();showToast(`− ${eur(amount)} retiré`);
+}
+function setFreeSavingsExact(){
+  const current=freeSavingsBalanceValue();
+  const raw=prompt('Quel est ton solde réel d’épargne libre ?',String(current.toFixed(2)));
+  if(raw===null)return;
+  const target=+String(raw).replace(',','.');
+  if(!Number.isFinite(target)||target<0)return showToast('Entre un montant valide');
+  const delta=target-current;
+  setFreeSavingsBalanceValue(target);
+  if(delta!==0)logFreeSavingsMovement(delta,'Ajustement du solde réel','adjustment');
+  save();render();showToast(`Épargne libre réglée à ${eur(target)}`);
+}
+function renderFreeSavings(){
+  const balance=freeSavingsBalanceValue();
+  const totalEl=document.getElementById('freeSavingsBalance');
+  const overviewEl=document.getElementById('envelopeFreeTotal');
+  if(totalEl)totalEl.textContent=eur(balance);
+  if(overviewEl)overviewEl.textContent=eur(balance);
+
+  const el=document.getElementById('freeSavingsMovements');
+  if(!el)return;
+  const moves=(state.freeSavingsMovements||[])
+    .filter(x=>x.accountId===state.activeAccount)
+    .slice()
+    .sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+    .slice(0,4);
+
+  el.innerHTML=moves.length?moves.map(x=>{
+    const positive=(+x.amount||0)>=0;
+    let d='';
+    try{d=new Date(x.date).toLocaleDateString('fr-BE',{day:'2-digit',month:'2-digit'})}catch(_){}
+    return `<div class="free-move">
+      <div class="meta">${escHTML(x.note||'Mouvement')} · ${d}</div>
+      <b class="${positive?'plus':'minus'}">${positive?'+':'−'} ${eur(Math.abs(+x.amount||0))}</b>
+    </div>`;
+  }).join(''):'';
+}
+
 function activeSavingEnvelopes(){
   return (state.savingsEnvelopes||[]).filter(e=>!e.accountId||e.accountId===state.activeAccount);
 }
@@ -856,9 +940,12 @@ function editSavingEnvelope(id){
 }
 function deleteSavingEnvelope(id){
   const e=(state.savingsEnvelopes||[]).find(x=>x.id===id);if(!e)return;
-  if(!confirm(`Supprimer l’enveloppe "${e.name}" ? Les montants épargnés resteront dans ton historique en épargne libre.`))return;
+  if(!confirm(`Supprimer l’enveloppe "${e.name}" ? Son solde sera transféré vers l’épargne libre.`))return;
+  const linked=(state.savingsEntries||[]).filter(x=>x.accountId===state.activeAccount&&x.envelopeId===id);
+  const moved=linked.reduce((s,x)=>s+(+x.amount||0),0);
   state.savingsEnvelopes=state.savingsEnvelopes.filter(x=>x.id!==id);
-  state.savingsEntries.forEach(x=>{if(x.envelopeId===id)x.envelopeId=''});
+  linked.forEach(x=>{x.envelopeId='';x.freeBalanceTracked=true});
+  if(moved>0)changeFreeSavingsBalance(moved,`Transfert depuis ${e.name}`,'envelope_delete',true);
   save();render();showToast('Enveloppe supprimée');
 }
 function addMoneyToEnvelope(id){
@@ -870,7 +957,7 @@ function addMoneyToEnvelope(id){
     id:'sav_'+Date.now(),amount,
     date:entryDateForView(),
     note:`Ajout à ${e.name}`,
-    goalId:'',envelopeId:id,
+    goalId:'',envelopeId:id,freeBalanceTracked:false,
     accountId:state.activeAccount
   });
   save();render();showToast(`+ ${eur(amount)} dans ${e.name}`);
@@ -898,12 +985,8 @@ function renderSavingEnvelopes(){
   const allocated=(state.savingsEntries||[])
     .filter(e=>e.accountId===state.activeAccount&&e.envelopeId&&envs.some(x=>x.id===e.envelopeId))
     .reduce((s,e)=>s+(+e.amount||0),0);
-  const free=(state.savingsEntries||[])
-    .filter(e=>e.accountId===state.activeAccount&&!e.envelopeId)
-    .reduce((s,e)=>s+(+e.amount||0),0);
-
   if(document.getElementById('envelopeAllocatedTotal'))envelopeAllocatedTotal.textContent=eur(allocated);
-  if(document.getElementById('envelopeFreeTotal'))envelopeFreeTotal.textContent=eur(free);
+  renderFreeSavings();
 
   if(!envs.length){
     el.innerHTML=emptyState('◇','Aucune enveloppe','Crée par exemple une enveloppe Enfant, Vacances ou Urgences.');
@@ -974,6 +1057,9 @@ function deleteSavingEntry(id){
   const e=state.savingsEntries.find(x=>x.id===id);if(!e)return;
   if(!confirm('Supprimer cette épargne ?'))return;
   adjustGoalFromSaving(e,-(+e.amount||0));
+  if(!e.envelopeId && e.freeBalanceTracked){
+    changeFreeSavingsBalance(-(+e.amount||0),'Suppression d’une épargne libre','saving_entry_delete',true);
+  }
   state.savingsEntries=state.savingsEntries.filter(x=>x.id!==id);
   save();render();showToast('Épargne supprimée');
 }
@@ -984,7 +1070,11 @@ function editSavingEntry(id){
   const amount=+raw||0;if(amount<=0)return;
   const old=+e.amount||0;
   e.amount=amount;
-  adjustGoalFromSaving(e,amount-old);
+  const delta=amount-old;
+  adjustGoalFromSaving(e,delta);
+  if(!e.envelopeId && e.freeBalanceTracked && delta!==0){
+    changeFreeSavingsBalance(delta,'Modification d’une épargne libre','saving_entry_edit',true);
+  }
   const note=prompt('Note',e.note||'');
   if(note!==null)e.note=note.trim();
   save();render();showToast('Épargne modifiée');
@@ -996,7 +1086,11 @@ function addSavingEntry(fromQuick=false){
   const note=(fromQuick?(document.getElementById('savingNoteQuick')?.value||''):(document.getElementById('savingNote')?.value||'')).trim();
   const goalId=fromQuick?'':(document.getElementById('savingGoal')?.value||'');
   const envelopeId=fromQuick?(document.getElementById('savingEnvelopeQuick')?.value||''):(document.getElementById('savingEnvelope')?.value||'');
-  state.savingsEntries.push({id:'sav_'+Date.now(),amount,date,note,goalId,envelopeId,accountId:state.activeAccount});
+  const newSaving={id:'sav_'+Date.now(),amount,date,note,goalId,envelopeId,accountId:state.activeAccount,freeBalanceTracked:!envelopeId};
+  state.savingsEntries.push(newSaving);
+  if(!envelopeId){
+    changeFreeSavingsBalance(amount,note||'Épargne libre ajoutée','saving_entry',true);
+  }
   if(goalId){
     const g=state.goals.find(x=>x.id===goalId);
     if(g)g.saved=Math.min(+g.target||Infinity,(+g.saved||0)+amount);
@@ -1656,7 +1750,7 @@ function addGoalMoney(id){
   const date=entryDateForView();
   state.savingsEntries.push({
     id:'sav_'+Date.now(),amount,date,note:`Ajout à ${g.name}`,
-    goalId:g.id,envelopeId:'',accountId:state.activeAccount
+    goalId:g.id,envelopeId:'',freeBalanceTracked:false,accountId:state.activeAccount
   });
   g.saved=Math.min(+g.target||Infinity,(+g.saved||0)+amount);
   save();render();showToast('Épargne ajoutée à l’objectif');
@@ -1884,8 +1978,8 @@ async function initCloud(){
   renderCloudStatus();
   if(currentUser){await loadUserWorkspace();showAuthGate(false)}else showAuthGate(true)
 }
-function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],savingsEnvelopes:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
-function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.savingsEnvelopes)x.savingsEnvelopes=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));return x}
+function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],savingsEnvelopes:[],freeSavingsBalances:{},freeSavingsMovements:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
+function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.savingsEnvelopes)x.savingsEnvelopes=[];if(!x.freeSavingsBalances)x.freeSavingsBalances={};if(!x.freeSavingsMovements)x.freeSavingsMovements=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));return x}
 function showAuthGate(v){document.getElementById('authGate')?.classList.toggle('hidden',!v)}
 async function loadUserWorkspace(){if(!currentUser)return;const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
 function renderCloudStatus(){
