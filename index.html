@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.3.3 Scanner Fix</title>
+<title>Mon Budget V24.3.5 Épargne Enveloppes</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.3.3</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.3.5</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -181,6 +181,7 @@
 
   <div id="savingQuickForm" class="hidden top">
     <input id="savingAmountQuick" type="number" step="0.01" min="0" placeholder="Montant mis de côté (€)">
+    <select id="savingEnvelopeQuick"><option value="">Épargne libre</option></select>
     <input id="savingNoteQuick" placeholder="Note (ex. virement épargne)">
     <button class="primary" onclick="addSavingEntry(true)">Valider</button>
   </div>
@@ -346,17 +347,37 @@
 </div>
   <div class="card">
     <h3>Statistiques</h3>
-    <select id="statsPeriod" onchange="renderStats()"><option value="3">3 mois</option><option value="6" selected>6 mois</option><option value="12">12 mois</option></select>
+    <div class="stats-toolbar">
+      <div>
+        <span class="label">Période</span>
+        <select id="statsPeriod" onchange="renderStats()">
+          <option value="7">7 jours</option>
+          <option value="30">30 jours</option>
+          <option value="90">90 jours</option>
+          <option value="180" selected>6 mois</option>
+          <option value="365">12 mois</option>
+        </select>
+      </div>
+      <div>
+        <span class="label">Vue</span>
+        <select id="statsGrouping" onchange="renderStats()">
+          <option value="auto" selected>Auto</option>
+          <option value="day">Par jour</option>
+          <option value="week">Par semaine</option>
+          <option value="month">Par mois</option>
+        </select>
+      </div>
+    </div>
   </div>
   <div class="card">
     <div class="statsgrid">
-      <div class="mini"><span class="label">Moyenne dépenses</span><b id="avgExpenses">0 €</b></div>
-      <div class="mini"><span class="label">Mois le + cher</span><b id="worstMonth">—</b></div>
-      <div class="mini"><span class="label">Catégorie n°1</span><b id="topCategory">—</b></div>
-      <div class="mini"><span class="label">Évolution</span><b id="trend">—</b></div>
+      <div class="mini"><span class="label" id="avgExpensesLabel">Moyenne dépenses</span><b id="avgExpenses">0 €</b></div>
+      <div class="mini"><span class="label" id="worstMonthLabel">Période la + chère</span><b id="worstMonth">—</b></div>
+      <div class="mini"><span class="label" id="topCategoryLabel">Catégorie n°1</span><b id="topCategory">—</b></div>
+      <div class="mini"><span class="label" id="trendLabel">Évolution</span><b id="trend">—</b></div>
     </div>
   </div>
-  <div class="card"><h3>Dépenses par mois</h3><div id="chart" class="chart"></div></div>
+  <div class="card"><h3 id="statsChartTitle">Dépenses par période</h3><div id="chart" class="chart"></div></div>
 </section>
 
 <section id="plan" class="section">
@@ -392,12 +413,55 @@
 </div>
 
 
+
+<div class="card savings-envelopes-card" id="savingsEnvelopesCard">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Répartition de l’épargne</div>
+      <h3>Mes enveloppes</h3>
+    </div>
+    <button class="secondary compact" onclick="toggle('savingEnvelopeForm')">+ Ajouter</button>
+  </div>
+  <div class="muted">Crée des poches séparées pour ton enfant, les vacances, une voiture, les impôts ou n’importe quel projet.</div>
+
+  <div class="envelope-presets top">
+    <button onclick="addEnvelopePreset('👶','Enfant')">👶 Enfant</button>
+    <button onclick="addEnvelopePreset('🛟','Urgences')">🛟 Urgences</button>
+    <button onclick="addEnvelopePreset('✈️','Vacances')">✈️ Vacances</button>
+    <button onclick="addEnvelopePreset('🚗','Voiture')">🚗 Voiture</button>
+  </div>
+
+  <div id="savingEnvelopeForm" class="hidden envelope-form top">
+    <div class="envelope-form-grid">
+      <select id="envelopeIcon" aria-label="Icône">
+        <option>💰</option><option>👶</option><option>🛟</option><option>✈️</option>
+        <option>🚗</option><option>🏠</option><option>🎓</option><option>🎁</option>
+        <option>💼</option><option>🎯</option>
+      </select>
+      <input id="envelopeName" placeholder="Nom de l’enveloppe">
+    </div>
+    <div class="grid2">
+      <input id="envelopeTarget" type="number" step="0.01" min="0" placeholder="Objectif (€) — optionnel">
+      <input id="envelopeMonthly" type="number" step="0.01" min="0" placeholder="Prévu / mois (€)">
+    </div>
+    <input id="envelopeDate" type="date" aria-label="Date cible">
+    <button class="primary" onclick="addSavingEnvelope()">Créer l’enveloppe</button>
+  </div>
+
+  <div class="envelope-overview top">
+    <div><span>Total réparti</span><b id="envelopeAllocatedTotal">0 €</b></div>
+    <div><span>Épargne libre</span><b id="envelopeFreeTotal">0 €</b></div>
+  </div>
+  <div id="savingEnvelopesList" class="top"></div>
+</div>
+
 <div class="card" id="savingsTrackerCard">
   <div class="rowtitle"><h3>Suivi de l’épargne</h3><span class="muted">Réel + historique</span></div>
   <div class="muted">Enregistre chaque montant réellement mis de côté. Tu peux aussi l’associer à un objectif.</div>
   <input id="savingAmount" type="number" step="0.01" min="0" placeholder="Montant mis de côté (€)">
   <input id="savingDate" type="date">
   <input id="savingNote" placeholder="Note (ex. virement vers compte épargne)">
+  <select id="savingEnvelope"><option value="">Épargne libre</option></select>
   <select id="savingGoal"><option value="">Aucun objectif lié</option></select>
   <button class="primary" onclick="addSavingEntry()">Ajouter l’épargne</button>
   <div id="savingsHistory" class="top"></div>

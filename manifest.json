@@ -1,11 +1,11 @@
 {
-  "name": "Mon Budget V24.3.3 Scanner Fix",
+  "name": "Mon Budget V24.3.5 Épargne Enveloppes",
   "short_name": "Mon Budget",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#071015",
   "theme_color": "#071015",
-  "description": "Scanner de tickets amélioré avec prétraitement et extraction plus robuste.",
+  "description": "Épargne répartie dans des enveloppes personnalisables.",
   "icons": [
     {
       "src": "./icon-192.png",

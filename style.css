@@ -1242,3 +1242,150 @@ input:focus,select:focus,textarea:focus{
   background:#0b151a;
   border:1px solid #1b2b32;
 }
+
+
+/* V24.3.4 Stats Flex Fix */
+.hero-lux{min-height:auto !important}
+.hero-quote{
+  position:relative !important;
+  left:auto !important;
+  bottom:auto !important;
+  display:block;
+  margin:14px 0 12px;
+  max-width:none !important;
+}
+#globalNotice{margin-top:12px}
+.stats-toolbar{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.stats-toolbar > div{display:grid;gap:6px}
+#chart.chart{
+  overflow-x:auto;
+  align-items:end;
+  padding-bottom:8px;
+}
+#chart .barcol{min-width:54px}
+@media(max-width:520px){
+  .stats-toolbar{grid-template-columns:1fr}
+}
+
+
+/* V24.3.5 — Savings envelopes */
+.savings-envelopes-card{
+  background:
+    radial-gradient(circle at 100% 0,rgba(232,201,150,.10),transparent 28%),
+    radial-gradient(circle at 0 100%,rgba(121,232,192,.07),transparent 30%),
+    linear-gradient(145deg,#0f1c22,#091419);
+}
+.envelope-presets{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding-bottom:2px;
+}
+.envelope-presets button{
+  flex:0 0 auto;
+  padding:9px 11px;
+  background:#101f26;
+  color:#cbd4d7;
+  border:1px solid #20323a;
+  font-size:11px;
+}
+.envelope-form{
+  padding:13px;
+  border-radius:17px;
+  background:#091318;
+  border:1px solid #20323a;
+}
+.envelope-form-grid{
+  display:grid;
+  grid-template-columns:82px 1fr;
+  gap:8px;
+}
+.envelope-overview{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.envelope-overview>div{
+  padding:12px;
+  border-radius:15px;
+  background:#091318;
+  border:1px solid #1d2e35;
+}
+.envelope-overview span{
+  display:block;
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:#7f8d93;
+}
+.envelope-overview b{display:block;margin-top:4px;font-size:16px}
+.envelope-card{
+  margin-top:10px;
+  padding:15px;
+  border-radius:20px;
+  background:linear-gradient(145deg,#111f26,#0b161b);
+  border:1px solid #22343c;
+}
+.envelope-head{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:11px;
+  align-items:center;
+}
+.envelope-icon{
+  width:42px;height:42px;
+  display:grid;place-items:center;
+  border-radius:14px;
+  background:#13272e;
+  border:1px solid #274049;
+  font-size:20px;
+}
+.envelope-name{font-size:15px;font-weight:850}
+.envelope-meta{
+  color:#8e999f;font-size:11px;margin-top:3px
+}
+.envelope-value{
+  text-align:right;
+  font-size:17px;
+  font-weight:900;
+}
+.envelope-progress{
+  height:8px;
+  background:#14242b;
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:12px;
+}
+.envelope-progress i{
+  display:block;height:100%;
+  background:linear-gradient(90deg,#79e8c0,#e8c996);
+  border-radius:999px;
+}
+.envelope-foot{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  margin-top:9px;
+}
+.envelope-foot .muted{font-size:10px}
+.envelope-actions{display:flex;gap:5px}
+.envelope-actions button{padding:7px 8px;font-size:10px}
+.envelope-tag{
+  display:inline-flex;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#132b24;
+  color:#8fe5c6;
+  font-size:9px;
+  font-weight:800;
+  margin-top:4px;
+}
+@media(max-width:480px){
+  .envelope-head{grid-template-columns:auto 1fr}
+  .envelope-value{grid-column:2;text-align:left}
+}

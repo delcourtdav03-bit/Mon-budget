@@ -71,7 +71,7 @@ if(existingBudget?.key && existingBudget.key!==KEY){
   }catch(e){}
 }
 let state=raw?JSON.parse(raw):{accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[]};
-if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.patrimony)state.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
+if(!state.accounts)state.accounts=[{id:'main',name:'Compte principal'}];if(!state.activeAccount)state.activeAccount='main';if(!state.budgets)state.budgets={};if(!state.recurring)state.recurring=[];if(!state.goals)state.goals=[];if(!state.monthlyPlans)state.monthlyPlans={};if(!state.dashboardPrefs)state.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!state.templates)state.templates=[];if(!state.rules)state.rules=[];if(!state.savingsEntries)state.savingsEntries=[];if(!state.savingsEnvelopes)state.savingsEnvelopes=[];if(!state.patrimony)state.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!state.uxPrefs)state.uxPrefs={compact:false};if(!state.customCategories)state.customCategories=[];if(!state.categoryRenames)state.categoryRenames={};
 state.ops=(state.ops||[]).map(x=>({...x,id:x.id||'op_'+Date.now()+Math.random(),accountId:x.accountId||'main',scope:x.scope||'personal',tags:Array.isArray(x.tags)?x.tags:[]}));
 let view=new Date();view.setDate(1);
 const savedTheme=localStorage.getItem('monBudgetTheme')||'light';
@@ -794,6 +794,154 @@ function applyDashboardPrefs(){
 }
 
 
+
+function activeSavingEnvelopes(){
+  return (state.savingsEnvelopes||[]).filter(e=>!e.accountId||e.accountId===state.activeAccount);
+}
+function envelopeSavedTotal(id){
+  return (state.savingsEntries||[])
+    .filter(e=>e.accountId===state.activeAccount&&e.envelopeId===id)
+    .reduce((s,e)=>s+(+e.amount||0),0);
+}
+function envelopeMonthTotal(id){
+  return monthSavingsEntries()
+    .filter(e=>e.envelopeId===id)
+    .reduce((s,e)=>s+(+e.amount||0),0);
+}
+function addEnvelopePreset(icon,name){
+  if(activeSavingEnvelopes().some(e=>e.name.toLowerCase()===name.toLowerCase())){
+    return showToast('Cette enveloppe existe déjà');
+  }
+  state.savingsEnvelopes.push({
+    id:'env_'+Date.now(),
+    icon,name,target:0,monthly:0,targetDate:'',
+    accountId:state.activeAccount
+  });
+  save();render();showToast(`Enveloppe ${name} créée`);
+}
+function addSavingEnvelope(){
+  const name=(document.getElementById('envelopeName')?.value||'').trim();
+  if(!name)return showToast('Donne un nom à l’enveloppe');
+  if(activeSavingEnvelopes().some(e=>e.name.toLowerCase()===name.toLowerCase())){
+    return showToast('Cette enveloppe existe déjà');
+  }
+  state.savingsEnvelopes.push({
+    id:'env_'+Date.now(),
+    icon:document.getElementById('envelopeIcon')?.value||'💰',
+    name,
+    target:+document.getElementById('envelopeTarget')?.value||0,
+    monthly:+document.getElementById('envelopeMonthly')?.value||0,
+    targetDate:document.getElementById('envelopeDate')?.value||'',
+    accountId:state.activeAccount
+  });
+  ['envelopeName','envelopeTarget','envelopeMonthly','envelopeDate'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.getElementById('savingEnvelopeForm')?.classList.add('hidden');
+  save();render();showToast('Enveloppe créée ✨');
+}
+function editSavingEnvelope(id){
+  const e=(state.savingsEnvelopes||[]).find(x=>x.id===id);if(!e)return;
+  const name=prompt('Nom de l’enveloppe',e.name);
+  if(name===null)return;
+  const clean=name.trim();if(!clean)return;
+  const target=prompt('Objectif total (€) — 0 si aucun',String(+e.target||0));
+  if(target===null)return;
+  const monthly=prompt('Montant prévu par mois (€)',String(+e.monthly||0));
+  if(monthly===null)return;
+  e.name=clean;
+  e.target=Math.max(0,+target||0);
+  e.monthly=Math.max(0,+monthly||0);
+  save();render();showToast('Enveloppe modifiée');
+}
+function deleteSavingEnvelope(id){
+  const e=(state.savingsEnvelopes||[]).find(x=>x.id===id);if(!e)return;
+  if(!confirm(`Supprimer l’enveloppe "${e.name}" ? Les montants épargnés resteront dans ton historique en épargne libre.`))return;
+  state.savingsEnvelopes=state.savingsEnvelopes.filter(x=>x.id!==id);
+  state.savingsEntries.forEach(x=>{if(x.envelopeId===id)x.envelopeId=''});
+  save();render();showToast('Enveloppe supprimée');
+}
+function addMoneyToEnvelope(id){
+  const e=(state.savingsEnvelopes||[]).find(x=>x.id===id);if(!e)return;
+  const raw=prompt(`Montant à ajouter à ${e.name}`);
+  if(raw===null)return;
+  const amount=+raw||0;if(amount<=0)return;
+  state.savingsEntries.push({
+    id:'sav_'+Date.now(),amount,
+    date:entryDateForView(),
+    note:`Ajout à ${e.name}`,
+    goalId:'',envelopeId:id,
+    accountId:state.activeAccount
+  });
+  save();render();showToast(`+ ${eur(amount)} dans ${e.name}`);
+}
+function renderSavingEnvelopeSelects(){
+  const envs=activeSavingEnvelopes();
+  const opts='<option value="">Épargne libre</option>'+envs.map(e=>`<option value="${e.id}">${escHTML(e.icon||'💰')} ${escHTML(e.name)}</option>`).join('');
+  const a=document.getElementById('savingEnvelope');
+  const q=document.getElementById('savingEnvelopeQuick');
+  if(a){
+    const v=a.value;
+    a.innerHTML=opts;
+    if([...a.options].some(o=>o.value===v))a.value=v;
+  }
+  if(q){
+    const v=q.value;
+    q.innerHTML=opts;
+    if([...q.options].some(o=>o.value===v))q.value=v;
+  }
+}
+function renderSavingEnvelopes(){
+  const el=document.getElementById('savingEnvelopesList');
+  if(!el)return;
+  const envs=activeSavingEnvelopes();
+  const allocated=(state.savingsEntries||[])
+    .filter(e=>e.accountId===state.activeAccount&&e.envelopeId&&envs.some(x=>x.id===e.envelopeId))
+    .reduce((s,e)=>s+(+e.amount||0),0);
+  const free=(state.savingsEntries||[])
+    .filter(e=>e.accountId===state.activeAccount&&!e.envelopeId)
+    .reduce((s,e)=>s+(+e.amount||0),0);
+
+  if(document.getElementById('envelopeAllocatedTotal'))envelopeAllocatedTotal.textContent=eur(allocated);
+  if(document.getElementById('envelopeFreeTotal'))envelopeFreeTotal.textContent=eur(free);
+
+  if(!envs.length){
+    el.innerHTML=emptyState('◇','Aucune enveloppe','Crée par exemple une enveloppe Enfant, Vacances ou Urgences.');
+    return;
+  }
+  el.innerHTML=envs.map(e=>{
+    const saved=envelopeSavedTotal(e.id);
+    const month=envelopeMonthTotal(e.id);
+    const target=+e.target||0;
+    const monthly=+e.monthly||0;
+    const pct=target?Math.min(100,saved/target*100):0;
+    let meta=[];
+    if(monthly)meta.push(`${eur(month)} / ${eur(monthly)} ce mois`);
+    if(e.targetDate){
+      try{meta.push(`cible ${new Date(e.targetDate+'T12:00:00').toLocaleDateString('fr-BE',{month:'short',year:'numeric'})}`)}catch(_){}
+    }
+    return `<div class="envelope-card">
+      <div class="envelope-head">
+        <div class="envelope-icon">${escHTML(e.icon||'💰')}</div>
+        <div>
+          <div class="envelope-name">${escHTML(e.name)}</div>
+          <div class="envelope-meta">${meta.length?meta.join(' · '):'Enveloppe personnalisée'}</div>
+        </div>
+        <div class="envelope-value">${eur(saved)}${target?`<div class="muted">sur ${eur(target)}</div>`:''}</div>
+      </div>
+      ${target?`<div class="envelope-progress"><i style="width:${pct}%"></i></div>`:''}
+      <div class="envelope-foot">
+        <div class="muted">${target?`${Math.round(pct)} % atteint`:(monthly?`${eur(month)} ajouté ce mois`:'Sans objectif défini')}</div>
+        <div class="envelope-actions">
+          <button class="secondary" onclick="addMoneyToEnvelope('${e.id}')">+ Ajouter</button>
+          <button class="secondary" onclick="editSavingEnvelope('${e.id}')">Modifier</button>
+          <button class="secondary" onclick="deleteSavingEnvelope('${e.id}')">×</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function monthlyPlannedSavings(){
   return (+currentPlan().savings||0) || monthlySave();
 }
@@ -847,7 +995,8 @@ function addSavingEntry(fromQuick=false){
   const date=fromQuick?entryDateForView():(document.getElementById('savingDate')?.value||entryDateForView());
   const note=(fromQuick?(document.getElementById('savingNoteQuick')?.value||''):(document.getElementById('savingNote')?.value||'')).trim();
   const goalId=fromQuick?'':(document.getElementById('savingGoal')?.value||'');
-  state.savingsEntries.push({id:'sav_'+Date.now(),amount,date,note,goalId,accountId:state.activeAccount});
+  const envelopeId=fromQuick?(document.getElementById('savingEnvelopeQuick')?.value||''):(document.getElementById('savingEnvelope')?.value||'');
+  state.savingsEntries.push({id:'sav_'+Date.now(),amount,date,note,goalId,envelopeId,accountId:state.activeAccount});
   if(goalId){
     const g=state.goals.find(x=>x.id===goalId);
     if(g)g.saved=Math.min(+g.target||Infinity,(+g.saved||0)+amount);
@@ -855,12 +1004,14 @@ function addSavingEntry(fromQuick=false){
   if(fromQuick){
     if(document.getElementById('savingAmountQuick'))savingAmountQuick.value='';
     if(document.getElementById('savingNoteQuick'))savingNoteQuick.value='';
+    if(document.getElementById('savingEnvelopeQuick'))savingEnvelopeQuick.value='';
     document.getElementById('savingQuickForm')?.classList.add('hidden');
   }else{
     if(document.getElementById('savingAmount'))savingAmount.value='';
     if(document.getElementById('savingDate'))savingDate.value='';
     if(document.getElementById('savingNote'))savingNote.value='';
     if(document.getElementById('savingGoal'))savingGoal.value='';
+    if(document.getElementById('savingEnvelope'))savingEnvelope.value='';
   }
   save();render();showToast('Épargne ajoutée ✨');
 }
@@ -888,12 +1039,14 @@ function renderSavingsHistory(){
   const el=document.getElementById('savingsHistory'); if(!el)return;
   const entries=monthSavingsEntries().slice().sort((a,b)=>b.date.localeCompare(a.date));
   if(document.getElementById('savingGoal')){
-    savingGoal.innerHTML='<option value="">Aucun objectif lié</option>'+state.goals.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+    savingGoal.innerHTML='<option value="">Aucun objectif lié</option>'+state.goals.map(g=>`<option value="${g.id}">${escHTML(g.name)}</option>`).join('');
   }
+  renderSavingEnvelopeSelects();
   el.innerHTML=entries.length?entries.map(x=>{
     const goal=x.goalId?state.goals.find(g=>g.id===x.goalId):null;
+    const envelope=x.envelopeId?(state.savingsEnvelopes||[]).find(e=>e.id===x.envelopeId):null;
     return `<div class="savingsHistoryItem">
-      <div class="meta"><strong>${x.note||'Épargne'}</strong><div class="muted">${x.date}</div>${goal?`<div class="goalpill">${goal.name}</div>`:''}</div>
+      <div class="meta"><strong>${escHTML(x.note||'Épargne')}</strong><div class="muted">${x.date}</div>${envelope?`<div class="envelope-tag">${escHTML(envelope.icon||'💰')} ${escHTML(envelope.name)}</div>`:''}${goal?`<div class="goalpill">${escHTML(goal.name)}</div>`:''}</div>
       <div>
         <b class="income">+ ${eur(x.amount)}</b>
         <div class="entry-actions">
@@ -1388,7 +1541,7 @@ function render(){
     dailyText.textContent=view<new Date(now.getFullYear(),now.getMonth(),1)?'Mois clôturé.':'Le rythme quotidien apparaîtra au début de ce mois.';
   }
 
-  renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();renderFinalToday();renderPremiumProjection();renderAnnualPremium();renderPatrimony();loadMonthlyPlanInputs();applyDashboardPrefs();renderCloudStatus();
+  renderCats(a);renderFiltered();renderBudgets();renderRecurring();renderGoals();renderStats();renderComparison();renderUpcoming();renderSmartInsights();renderAnomalies();renderCalendar();renderTemplates();renderRules();renderPredictions();renderAutomationSuggestions();renderHeroTrend();renderGoalShowcase();renderMonthlyPilot();renderSavingsModule();renderSavingEnvelopes();renderSavingsHistory();renderMonthlyReport();renderFocusCard();renderCategoryManager();renderAlerts();renderFinalToday();renderPremiumProjection();renderAnnualPremium();renderPatrimony();loadMonthlyPlanInputs();applyDashboardPrefs();renderCloudStatus();
   let td=new Date().toISOString().slice(0,10);if(!eDate.value)eDate.value=td;if(!iDate.value)iDate.value=td;if(!tDate.value)tDate.value=td;save();
 }
 function renderCats(a){
@@ -1503,7 +1656,7 @@ function addGoalMoney(id){
   const date=entryDateForView();
   state.savingsEntries.push({
     id:'sav_'+Date.now(),amount,date,note:`Ajout à ${g.name}`,
-    goalId:g.id,accountId:state.activeAccount
+    goalId:g.id,envelopeId:'',accountId:state.activeAccount
   });
   g.saved=Math.min(+g.target||Infinity,(+g.saved||0)+amount);
   save();render();showToast('Épargne ajoutée à l’objectif');
@@ -1514,7 +1667,118 @@ function deleteGoal(id){
   state.savingsEntries.forEach(e=>{if(e.goalId===id)e.goalId=''});
   save();render();showToast('Objectif supprimé');
 }
-function renderStats(){let n=+(statsPeriod?.value||6),months=[];for(let i=n-1;i>=0;i--){let d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);let key=mk(d),ops=state.ops.filter(x=>x.accountId===state.activeAccount&&x.date.startsWith(key)),exp=ops.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);months.push({d,exp,ops})}let avg=months.reduce((s,m)=>s+m.exp,0)/Math.max(1,n);avgExpenses.textContent=eur(avg);let worst=months.slice().sort((a,b)=>b.exp-a.exp)[0];worstMonth.textContent=worst&&worst.exp?worst.d.toLocaleDateString('fr-BE',{month:'short'}):'—';let ct={};months.flatMap(m=>m.ops).filter(x=>x.type==='expense').forEach(x=>ct[x.cat]=(ct[x.cat]||0)+x.amount);let top=Object.entries(ct).sort((a,b)=>b[1]-a[1])[0];topCategory.textContent=top?top[0]:'—';let first=months[0]?.exp||0,last=months.at(-1)?.exp||0;trend.textContent=first?(((last-first)/first*100)>=0?'+':'')+Math.round((last-first)/first*100)+' %':'—';let max=Math.max(1,...months.map(m=>m.exp));chart.innerHTML=months.map(m=>`<div class="barcol"><i style="height:${Math.max(3,m.exp/max*130)}px"></i>${m.d.toLocaleDateString('fr-BE',{month:'short'})}<br>${Math.round(m.exp)}€</div>`).join('')}
+function startOfDay(d){const x=new Date(d);x.setHours(0,0,0,0);return x}
+function startOfWeek(d){
+  const x=startOfDay(d);
+  const day=(x.getDay()+6)%7;
+  x.setDate(x.getDate()-day);
+  return x;
+}
+function startOfMonth(d){const x=startOfDay(d);x.setDate(1);return x}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function addMonths(d,n){const x=new Date(d);x.setMonth(x.getMonth()+n);return x}
+function fmtDayLabel(d){return d.toLocaleDateString('fr-BE',{day:'2-digit',month:'2-digit'})}
+function fmtMonthLabel(d){return d.toLocaleDateString('fr-BE',{month:'short'})}
+function getWeekNumber(date){
+  const d=startOfDay(date);
+  d.setDate(d.getDate()+4-((d.getDay()+6)%7));
+  const yearStart=new Date(d.getFullYear(),0,1);
+  return Math.ceil((((d-yearStart)/86400000)+1)/7);
+}
+function weekLabel(d){return `S${String(getWeekNumber(d)).padStart(2,'0')}`}
+function buildBuckets(start,end,grouping){
+  let buckets=[];
+  if(grouping==='day'){
+    for(let d=startOfDay(start);d<=end;d=addDays(d,1)){
+      const s=startOfDay(d),e=new Date(s);e.setHours(23,59,59,999);
+      buckets.push({label:fmtDayLabel(s),start:new Date(s),end:e,total:0,ops:[]});
+    }
+  }else if(grouping==='week'){
+    for(let d=startOfWeek(start);d<=end;d=addDays(d,7)){
+      const s=startOfWeek(d),e=addDays(s,6);e.setHours(23,59,59,999);
+      buckets.push({label:weekLabel(s),start:new Date(s),end:e,total:0,ops:[]});
+    }
+  }else{
+    for(let d=startOfMonth(start);d<=end;d=addMonths(d,1)){
+      const s=startOfMonth(d),e=addMonths(s,1);e.setMilliseconds(-1);
+      buckets.push({label:fmtMonthLabel(s),start:new Date(s),end:e,total:0,ops:[]});
+    }
+  }
+  return buckets.filter(b=>b.end>=start && b.start<=end);
+}
+function detectStatsGrouping(days,mode){
+  if(mode && mode!=='auto')return mode;
+  if(days<=14)return 'day';
+  if(days<=120)return 'week';
+  return 'month';
+}
+function renderStats(){
+  const periodEl=document.getElementById('statsPeriod');
+  const groupingEl=document.getElementById('statsGrouping');
+  const chartEl=document.getElementById('chart');
+  if(!periodEl||!chartEl)return;
+
+  const days=+(periodEl.value||180);
+  const grouping=detectStatsGrouping(days, groupingEl?.value||'auto');
+
+  const end=new Date(); end.setHours(23,59,59,999);
+  const start=startOfDay(addDays(end,-(days-1)));
+
+  const ops=(state.ops||[])
+    .filter(x=>x.accountId===state.activeAccount)
+    .filter(x=>{
+      const dt=new Date(x.date);
+      return !Number.isNaN(dt.getTime()) && dt>=start && dt<=end;
+    });
+  const expenseOps=ops.filter(x=>x.type==='expense');
+  const buckets=buildBuckets(start,end,grouping);
+
+  expenseOps.forEach(op=>{
+    const dt=new Date(op.date);
+    const bucket=buckets.find(b=>dt>=b.start && dt<=b.end);
+    if(bucket){
+      bucket.total+=(+op.amount||0);
+      bucket.ops.push(op);
+    }
+  });
+
+  const avgLabelMap={day:'Moyenne / jour',week:'Moyenne / semaine',month:'Moyenne / mois'};
+  const worstLabelMap={day:'Jour le + cher',week:'Semaine la + chère',month:'Mois le + cher'};
+  const chartTitleMap={day:'Dépenses par jour',week:'Dépenses par semaine',month:'Dépenses par mois'};
+
+  const avgLabel=document.getElementById('avgExpensesLabel');
+  const worstLabel=document.getElementById('worstMonthLabel');
+  const chartTitle=document.getElementById('statsChartTitle');
+  if(avgLabel)avgLabel.textContent=avgLabelMap[grouping];
+  if(worstLabel)worstLabel.textContent=worstLabelMap[grouping];
+  if(chartTitle)chartTitle.textContent=chartTitleMap[grouping];
+
+  const totalExpenses=buckets.reduce((s,b)=>s+b.total,0);
+  avgExpenses.textContent=eur(totalExpenses/Math.max(1,buckets.length));
+
+  const worst=buckets.slice().sort((a,b)=>b.total-a.total)[0];
+  worstMonth.textContent=worst&&worst.total?worst.label:'—';
+
+  let ct={};
+  expenseOps.forEach(x=>ct[x.cat]=(ct[x.cat]||0)+(+x.amount||0));
+  let top=Object.entries(ct).sort((a,b)=>b[1]-a[1])[0];
+  topCategory.textContent=top?top[0]:'—';
+
+  let first=buckets[0]?.total||0,last=buckets[buckets.length-1]?.total||0;
+  trend.textContent=first?(((last-first)/first*100)>=0?'+':'')+Math.round((last-first)/first*100)+' %':'—';
+
+  if(!expenseOps.length){
+    chartEl.innerHTML=`<div class="empty-state" style="width:100%">
+      <div class="empty-icon">◌</div>
+      <strong>Pas encore assez de données</strong>
+      <small>Ajoute des dépenses pour voir l’évolution sur la période choisie.</small>
+    </div>`;
+    return;
+  }
+
+  const max=Math.max(1,...buckets.map(b=>b.total));
+  chartEl.innerHTML=buckets.map(b=>`<div class="barcol"><i style="height:${Math.max(3,b.total/max*130)}px"></i>${b.label}<br>${Math.round(b.total)}€</div>`).join('');
+}
 async function enableNotifications(){
   const status=document.getElementById('notificationStatus');
   if(!('Notification'in window)){
@@ -1620,8 +1884,8 @@ async function initCloud(){
   renderCloudStatus();
   if(currentUser){await loadUserWorkspace();showAuthGate(false)}else showAuthGate(true)
 }
-function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
-function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));return x}
+function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],savingsEnvelopes:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
+function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.savingsEnvelopes)x.savingsEnvelopes=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));return x}
 function showAuthGate(v){document.getElementById('authGate')?.classList.toggle('hidden',!v)}
 async function loadUserWorkspace(){if(!currentUser)return;const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
 function renderCloudStatus(){
