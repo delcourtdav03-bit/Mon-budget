@@ -1461,3 +1461,28 @@ input:focus,select:focus,textarea:focus{
   .free-savings-actions{grid-template-columns:1fr 1fr}
   .free-savings-actions button:last-child{grid-column:1/-1}
 }
+
+
+/* V24.3.7 — Retrait des enveloppes */
+.envelope-actions{
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.envelope-actions .envelope-withdraw{
+  background:#26191b;
+  color:#ffb4ae;
+  border:1px solid #4a2b2f;
+}
+.envelope-actions .envelope-withdraw:active{
+  background:#321d20;
+}
+@media(max-width:480px){
+  .envelope-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .envelope-actions button{
+    width:100%;
+  }
+}

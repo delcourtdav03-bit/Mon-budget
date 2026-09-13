@@ -1,11 +1,11 @@
 {
-  "name": "Mon Budget V24.3.6 Épargne Libre",
+  "name": "Mon Budget V24.3.7 Retrait Épargne",
   "short_name": "Mon Budget",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#071015",
   "theme_color": "#071015",
-  "description": "Épargne libre avec solde réel modulable, retraits et ajustements.",
+  "description": "Ajout du retrait d'argent depuis les enveloppes d'épargne.",
   "icons": [
     {
       "src": "./icon-192.png",

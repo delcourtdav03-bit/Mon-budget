@@ -962,6 +962,32 @@ function addMoneyToEnvelope(id){
   });
   save();render();showToast(`+ ${eur(amount)} dans ${e.name}`);
 }
+function withdrawMoneyFromEnvelope(id){
+  const e=(state.savingsEnvelopes||[]).find(x=>x.id===id);if(!e)return;
+  const available=Math.max(0,envelopeSavedTotal(id));
+  if(available<=0)return showToast(`L’enveloppe ${e.name} est vide`);
+
+  const raw=prompt(`Montant à retirer de ${e.name} (maximum ${eur(available)})`);
+  if(raw===null)return;
+
+  const amount=+String(raw).replace(',','.')||0;
+  if(amount<=0)return showToast('Entre un montant supérieur à 0 €');
+  if(amount>available)return showToast(`Tu ne peux pas retirer plus de ${eur(available)}`);
+
+  state.savingsEntries.push({
+    id:'sav_'+Date.now(),
+    amount:-amount,
+    date:entryDateForView(),
+    note:`Retrait de ${e.name}`,
+    goalId:'',
+    envelopeId:id,
+    freeBalanceTracked:false,
+    movement:'withdrawal',
+    accountId:state.activeAccount
+  });
+
+  save();render();showToast(`− ${eur(amount)} retiré de ${e.name}`);
+}
 function renderSavingEnvelopeSelects(){
   const envs=activeSavingEnvelopes();
   const opts='<option value="">Épargne libre</option>'+envs.map(e=>`<option value="${e.id}">${escHTML(e.icon||'💰')} ${escHTML(e.name)}</option>`).join('');
@@ -1017,6 +1043,7 @@ function renderSavingEnvelopes(){
         <div class="muted">${target?`${Math.round(pct)} % atteint`:(monthly?`${eur(month)} ajouté ce mois`:'Sans objectif défini')}</div>
         <div class="envelope-actions">
           <button class="secondary" onclick="addMoneyToEnvelope('${e.id}')">+ Ajouter</button>
+          <button class="secondary envelope-withdraw" onclick="withdrawMoneyFromEnvelope('${e.id}')">− Retirer</button>
           <button class="secondary" onclick="editSavingEnvelope('${e.id}')">Modifier</button>
           <button class="secondary" onclick="deleteSavingEnvelope('${e.id}')">×</button>
         </div>
@@ -1065,19 +1092,32 @@ function deleteSavingEntry(id){
 }
 function editSavingEntry(id){
   const e=state.savingsEntries.find(x=>x.id===id);if(!e)return;
-  const raw=prompt('Nouveau montant',String(e.amount));
+  const wasWithdrawal=(+e.amount||0)<0;
+  const raw=prompt(wasWithdrawal?'Nouveau montant du retrait':'Nouveau montant',String(Math.abs(+e.amount||0)));
   if(raw===null)return;
-  const amount=+raw||0;if(amount<=0)return;
+  const entered=+String(raw).replace(',','.')||0;
+  if(entered<=0)return showToast('Entre un montant supérieur à 0 €');
+
+  if(wasWithdrawal && e.envelopeId){
+    const currentEnvelopeTotal=envelopeSavedTotal(e.envelopeId);
+    const oldAbs=Math.abs(+e.amount||0);
+    const maxAllowed=currentEnvelopeTotal+oldAbs;
+    if(entered>maxAllowed)return showToast(`Retrait maximum : ${eur(maxAllowed)}`);
+  }
+
   const old=+e.amount||0;
+  const amount=wasWithdrawal?-entered:entered;
   e.amount=amount;
   const delta=amount-old;
   adjustGoalFromSaving(e,delta);
+
   if(!e.envelopeId && e.freeBalanceTracked && delta!==0){
     changeFreeSavingsBalance(delta,'Modification d’une épargne libre','saving_entry_edit',true);
   }
+
   const note=prompt('Note',e.note||'');
   if(note!==null)e.note=note.trim();
-  save();render();showToast('Épargne modifiée');
+  save();render();showToast(wasWithdrawal?'Retrait modifié':'Épargne modifiée');
 }
 function addSavingEntry(fromQuick=false){
   const amount=+(fromQuick?(document.getElementById('savingAmountQuick')?.value||0):(document.getElementById('savingAmount')?.value||0));
@@ -1142,7 +1182,7 @@ function renderSavingsHistory(){
     return `<div class="savingsHistoryItem">
       <div class="meta"><strong>${escHTML(x.note||'Épargne')}</strong><div class="muted">${x.date}</div>${envelope?`<div class="envelope-tag">${escHTML(envelope.icon||'💰')} ${escHTML(envelope.name)}</div>`:''}${goal?`<div class="goalpill">${escHTML(goal.name)}</div>`:''}</div>
       <div>
-        <b class="income">+ ${eur(x.amount)}</b>
+        <b class="${(+x.amount||0)>=0?'income':'danger'}">${(+x.amount||0)>=0?'+':'−'} ${eur(Math.abs(+x.amount||0))}</b>
         <div class="entry-actions">
           <button class="secondary" onclick="editSavingEntry('${x.id}')">Modifier</button>
           <button class="secondary" onclick="deleteSavingEntry('${x.id}')">Supprimer</button>
