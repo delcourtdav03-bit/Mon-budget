@@ -1,11 +1,11 @@
 {
-  "name": "Mon Budget V24.3.7 Retrait Épargne",
+  "name": "Mon Budget V24.3.8 Épargne Séparée",
   "short_name": "Mon Budget",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#071015",
   "theme_color": "#071015",
-  "description": "Ajout du retrait d'argent depuis les enveloppes d'épargne.",
+  "description": "Sépare le solde d'épargne déjà existant de l'épargne réalisée ce mois.",
   "icons": [
     {
       "src": "./icon-192.png",

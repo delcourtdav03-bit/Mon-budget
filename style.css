@@ -1486,3 +1486,33 @@ input:focus,select:focus,textarea:focus{
     width:100%;
   }
 }
+
+
+/* V24.3.8 — Separate existing savings from monthly cashflow */
+.envelope-actions .envelope-monthly{
+  background:#112b23;
+  color:#91ebcb;
+  border:1px solid #28503f;
+}
+.envelope-actions .envelope-existing{
+  background:#201f18;
+  color:#e5c991;
+  border:1px solid #433c29;
+}
+.savings-origin-tag{
+  display:inline-flex;
+  padding:3px 7px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:800;
+  margin-top:4px;
+  margin-right:4px;
+}
+.savings-origin-tag.existing{
+  background:#242116;
+  color:#e6c88e;
+}
+.savings-origin-tag.monthly{
+  background:#122a22;
+  color:#8fe5c6;
+}
