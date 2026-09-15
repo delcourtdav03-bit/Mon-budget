@@ -1691,3 +1691,55 @@ input:focus,select:focus,textarea:focus{
   color:#eed6a4;
   border:1px solid #55462a;
 }
+
+/* V24.4.7 — Local Recovery */
+.local-recovery-list{margin-top:12px}
+.recovery-item{
+  margin:10px 0;
+  padding:13px;
+  border-radius:16px;
+  border:1px solid #1d3038;
+  background:#081217;
+}
+.recovery-item-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.recovery-item strong{display:block;font-size:13px}
+.recovery-item small{
+  display:block;
+  margin-top:3px;
+  color:#738087;
+  font-size:9px;
+  word-break:break-all;
+}
+.recovery-best{
+  flex:0 0 auto;
+  padding:5px 7px;
+  border-radius:999px;
+  background:#143027;
+  color:#94e5c7;
+  font-size:9px;
+  font-weight:850;
+}
+.recovery-stats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:10px;
+}
+.recovery-stats span{
+  padding:5px 7px;
+  border-radius:9px;
+  background:#0e1b21;
+  color:#98a3a8;
+  font-size:9px;
+}
+.recovery-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}

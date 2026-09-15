@@ -2310,7 +2310,7 @@ function continueLocalMode(){
 function reopenAuthGate(){
   goToAccountSettings();
 }
-async function loadUserWorkspace(){if(!currentUser)return;const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
+async function loadUserWorkspace(){if(!currentUser)return;createRecoverySafetyBackup();const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
 function renderCloudStatus(){
   renderVisibleAccountUI();
   const el=document.getElementById('cloudStatus');const tg=document.getElementById('autoSyncToggle');if(tg)tg.checked=autoSync;
@@ -2523,7 +2523,190 @@ async function signOut(){
   showToast('Déconnecté — tes données locales restent disponibles');
 }
 async function pushCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}const {error}=await sb.from('budget_snapshots').upsert({user_id:currentUser.id,data:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}localStorage.setItem(userCacheKey(),JSON.stringify(state));if(document.getElementById('syncInfo'))syncInfo.textContent='Dernière synchro : '+new Date().toLocaleString('fr-BE');if(!silent)showToast('Budget sauvegardé')}
-async function pullCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}const {data,error}=await sb.from('budget_snapshots').select('data,updated_at').eq('user_id',currentUser.id).maybeSingle();if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}if(data?.data){state=normalizeState(data.data);localStorage.setItem(userCacheKey(),JSON.stringify(state));render();if(document.getElementById('syncInfo'))syncInfo.textContent='Données à jour : '+new Date(data.updated_at).toLocaleString('fr-BE')}else{state=normalizeState(state);await pushCloud(true);if(document.getElementById('syncInfo'))syncInfo.textContent='Premier espace cloud créé'}}
+async function pullCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}createRecoverySafetyBackup();const {data,error}=await sb.from('budget_snapshots').select('data,updated_at').eq('user_id',currentUser.id).maybeSingle();if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}if(data?.data){state=normalizeState(data.data);localStorage.setItem(userCacheKey(),JSON.stringify(state));render();if(document.getElementById('syncInfo'))syncInfo.textContent='Données à jour : '+new Date(data.updated_at).toLocaleString('fr-BE')}else{state=normalizeState(state);await pushCloud(true);if(document.getElementById('syncInfo'))syncInfo.textContent='Premier espace cloud créé'}}
+
+function recoveryDataScore(x){
+  if(!x||typeof x!=='object')return -1;
+  return (
+    (Array.isArray(x.ops)?x.ops.length*6:0)+
+    (Array.isArray(x.savingsEntries)?x.savingsEntries.length*5:0)+
+    (Array.isArray(x.savingsEnvelopes)?x.savingsEnvelopes.length*4:0)+
+    (Array.isArray(x.goals)?x.goals.length*4:0)+
+    (Array.isArray(x.recurring)?x.recurring.length*3:0)+
+    (Array.isArray(x.accounts)?x.accounts.length*2:0)+
+    (x.monthlyPlans&&typeof x.monthlyPlans==='object'?Object.keys(x.monthlyPlans).length*2:0)+
+    (x.budgets&&typeof x.budgets==='object'?Object.keys(x.budgets).length:0)+
+    (x.patrimony&&typeof x.patrimony==='object'?3:0)
+  );
+}
+
+function recoveryDataSummary(x){
+  return {
+    ops:Array.isArray(x?.ops)?x.ops.length:0,
+    savings:Array.isArray(x?.savingsEntries)?x.savingsEntries.length:0,
+    envelopes:Array.isArray(x?.savingsEnvelopes)?x.savingsEnvelopes.length:0,
+    goals:Array.isArray(x?.goals)?x.goals.length:0,
+    recurring:Array.isArray(x?.recurring)?x.recurring.length:0,
+    accounts:Array.isArray(x?.accounts)?x.accounts.length:0
+  };
+}
+
+function collectLocalRecoveryCandidates(){
+  const found=[];
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(!key)continue;
+    if(!/monbudget/i.test(key))continue;
+    const raw=localStorage.getItem(key);
+    if(!raw)continue;
+    try{
+      const data=JSON.parse(raw);
+      if(!data||typeof data!=='object')continue;
+      const score=recoveryDataScore(data);
+      if(score<0)continue;
+      found.push({
+        key,
+        raw,
+        data,
+        score,
+        summary:recoveryDataSummary(data),
+        isCurrent:key===KEY,
+        isUserCache:/monBudgetV23:user:/i.test(key)
+      });
+    }catch(e){}
+  }
+  found.sort((a,b)=>b.score-a.score);
+  return found;
+}
+
+function escAttr(v){
+  return String(v??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function scanLocalRecovery(){
+  const status=document.getElementById('localRecoveryStatus');
+  const list=document.getElementById('localRecoveryList');
+  const candidates=collectLocalRecoveryCandidates();
+
+  if(!list||!status)return;
+  if(!candidates.length){
+    status.textContent='Aucune ancienne sauvegarde Mon Budget trouvée sur cet appareil.';
+    list.innerHTML='';
+    return;
+  }
+
+  const useful=candidates.filter(c=>c.score>0);
+  if(!useful.length){
+    status.textContent='Des clés Mon Budget existent, mais elles semblent vides.';
+  }else{
+    status.textContent=`${useful.length} sauvegarde(s) contenant des données trouvée(s). La plus riche est affichée en premier.`;
+  }
+
+  list.innerHTML=candidates.slice(0,12).map((c,idx)=>{
+    const s=c.summary;
+    const label=c.isCurrent?'Version actuelle':(c.isUserCache?'Cache compte cloud':'Ancienne sauvegarde locale');
+    const best=idx===0&&c.score>0?'<span class="recovery-best">Meilleure candidate</span>':'';
+    return `
+      <div class="recovery-item">
+        <div class="recovery-item-top">
+          <div>
+            <strong>${escHTML(label)}</strong>
+            <small>${escHTML(c.key)}</small>
+          </div>
+          ${best}
+        </div>
+        <div class="recovery-stats">
+          <span>${s.ops} opérations</span>
+          <span>${s.savings} épargnes</span>
+          <span>${s.envelopes} enveloppes</span>
+          <span>${s.goals} objectifs</span>
+          <span>${s.recurring} récurrents</span>
+        </div>
+        <div class="recovery-actions">
+          <button type="button" class="secondary compact" onclick="previewRecoveryCandidate('${encodeURIComponent(c.key)}')">Aperçu</button>
+          <button type="button" class="primary compact" onclick="restoreRecoveryCandidate('${encodeURIComponent(c.key)}')">Restaurer</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function previewRecoveryCandidate(encodedKey){
+  const key=decodeURIComponent(encodedKey);
+  const raw=localStorage.getItem(key);
+  if(!raw)return showToast('Sauvegarde introuvable');
+  try{
+    const x=JSON.parse(raw);
+    const s=recoveryDataSummary(x);
+    const msg=[
+      `Clé : ${key}`,
+      `${s.ops} opérations`,
+      `${s.savings} mouvements d’épargne`,
+      `${s.envelopes} enveloppes`,
+      `${s.goals} objectifs`,
+      `${s.recurring} charges récurrentes`,
+      `${s.accounts} comptes`
+    ].join('\n');
+    alert(msg);
+  }catch(e){
+    showToast('Sauvegarde illisible');
+  }
+}
+
+function createRecoverySafetyBackup(){
+  try{
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    localStorage.setItem(`monBudgetRecoverySafety:${stamp}`,JSON.stringify(state));
+  }catch(e){}
+}
+
+function restoreRecoveryCandidate(encodedKey){
+  const key=decodeURIComponent(encodedKey);
+  const raw=localStorage.getItem(key);
+  if(!raw)return showToast('Sauvegarde introuvable');
+
+  let candidate;
+  try{
+    candidate=JSON.parse(raw);
+  }catch(e){
+    return showToast('Sauvegarde illisible');
+  }
+
+  const s=recoveryDataSummary(candidate);
+  const ok=confirm(
+    `Restaurer cette sauvegarde ?\n\n`+
+    `${s.ops} opérations\n`+
+    `${s.savings} mouvements d’épargne\n`+
+    `${s.envelopes} enveloppes\n`+
+    `${s.goals} objectifs\n`+
+    `${s.recurring} charges récurrentes\n\n`+
+    `Une copie de sécurité de l’état actuel sera conservée.`
+  );
+  if(!ok)return;
+
+  createRecoverySafetyBackup();
+
+  try{
+    state=normalizeState(candidate);
+    state=migrateSavingsImpactV1(state);
+    state=stabilizeFinancialData(state);
+
+    // Restore to canonical local key and keep source intact.
+    localStorage.setItem(KEY,JSON.stringify(state));
+    localStorage.setItem('monBudgetRecoveredFrom',key);
+    localStorage.setItem('monBudgetRecoveredAt',new Date().toISOString());
+
+    refreshCats();
+    render();
+    save();
+
+    const status=document.getElementById('localRecoveryStatus');
+    if(status)status.textContent=`Données restaurées depuis ${key} ✅`;
+    showToast('Anciennes données restaurées ✅');
+  }catch(err){
+    showToast('Échec de la restauration : '+(err?.message||String(err)));
+  }
+}
+
 function download(c,n,t){let b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u)}
 function exportBackup(){download(JSON.stringify(state,null,2),'mon_budget_v9_sauvegarde.json','application/json')}
 function importBackup(f){if(!f)return;let r=new FileReader();r.onload=()=>{try{state=normalizeState(JSON.parse(r.result));refreshCats();render();save()}catch(e){alert('Fichier invalide')}};r.readAsText(f)}
