@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.3.9 Logo Final</title>
+<title>Mon Budget V24.4.2 Auth Diagnostic</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.3.9</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.2</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -588,12 +588,14 @@
     Mode démo : l’interface de connexion est prête, mais le cloud doit encore être configuré.
   </div>
 
+  <div id="authDiagnostic" class="notice warn">Prêt pour le test de connexion.</div>
+
   <div id="accountLoggedOutUI">
     <input id="visibleAuthEmail" type="email" autocomplete="email" placeholder="Adresse email">
     <input id="visibleAuthPassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mot de passe">
-    <button class="primary full" onclick="visibleSignIn()">Se connecter</button>
-    <button class="secondary full" onclick="visibleSignUp()">Créer un compte</button>
-    <button class="linkbtn" onclick="visibleResetPassword()">Mot de passe oublié ?</button>
+    <button class="primary full" type="button" onclick="visibleSignIn()">Se connecter</button>
+    <button class="secondary full" type="button" onclick="visibleSignUp()">Créer un compte</button>
+    <button class="linkbtn" type="button" onclick="visibleResetPassword()">Mot de passe oublié ?</button>
   </div>
 
   <div id="accountLoggedInUI" class="hidden">
