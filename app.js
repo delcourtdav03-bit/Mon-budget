@@ -2234,9 +2234,9 @@ function renderVisibleAccountUI(){
     out?.classList.remove('hidden');
     inn?.classList.add('hidden');
     if(cloudConfigured){
-      if(banner){banner.className='notice warn';banner.textContent='Cloud configuré — connecte-toi ou crée ton compte.'}
-      if(homeStatus)homeStatus.textContent='Non connecté';
-      if(homeText)homeText.textContent='Ton cloud est prêt. Connecte-toi pour synchroniser tes données.';
+      if(banner){banner.className='notice warn';banner.textContent='Mode local actif — crée un compte seulement si tu veux activer le cloud.'}
+      if(homeStatus)homeStatus.textContent='Mode local';
+      if(homeText)homeText.textContent='Tes données restent sur cet appareil. Connecte-toi pour ajouter une sauvegarde cloud.';
     }else{
       if(banner){banner.className='notice warn';banner.textContent='Mode démo : interface prête. Configure Supabase pour activer les comptes.'}
       if(homeStatus)homeStatus.textContent='Mode local';
@@ -2246,20 +2246,20 @@ function renderVisibleAccountUI(){
 }
 
 async function initCloud(){
-  if(!cloudConfigured){showAuthGate(false);renderCloudStatus();return}
+  if(!cloudConfigured){renderCloudStatus();return}
   let data=null;
   try{
     const result=await sb.auth.getSession();data=result.data;
   }catch(err){
-    showAuthGate(true,true);
-    setGateAuthMessage('Impossible de charger la session Supabase : '+(err?.message||String(err)),'warn');
+    console.warn('Impossible de charger la session Supabase',err);
+    renderCloudStatus();
     return;
   }
   currentUser=data?.session?.user||null;
   sb.auth.onAuthStateChange(async(event,session)=>{
     currentUser=session?.user||null;renderCloudStatus();
     if(currentUser&&(event==='SIGNED_IN'||event==='INITIAL_SESSION'))await loadUserWorkspace();
-    if(event==='SIGNED_OUT'){state=blankState();render();showAuthGate(true)}
+    if(event==='SIGNED_OUT'){renderCloudStatus();renderVisibleAccountUI();showToast('Déconnecté — mode local actif')}
     if(event==='PASSWORD_RECOVERY'){
       const p=prompt('Nouveau mot de passe (6 caractères minimum)');
       if(p&&p.length>=6){const {error}=await sb.auth.updateUser({password:p});showToast(error?error.message:'Mot de passe mis à jour')}
@@ -2271,30 +2271,32 @@ async function initCloud(){
 function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],savingsEnvelopes:[],freeSavingsBalances:{},freeSavingsMovements:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
 function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.savingsEnvelopes)x.savingsEnvelopes=[];if(!x.freeSavingsBalances)x.freeSavingsBalances={};if(!x.freeSavingsMovements)x.freeSavingsMovements=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));x=migrateSavingsImpactV1(x);x=stabilizeFinancialData(x);return x}
 function showAuthGate(v,force=false){
-  const gate=document.getElementById('authGate');if(!gate)return;
-  if(v&&authGateDismissed&&!force){gate.classList.add('hidden');return}
-  gate.classList.toggle('hidden',!v);
-  if(v){setTimeout(()=>document.getElementById('gateEmail')?.focus({preventScroll:true}),80)}
+  // V24.4.5: authentication is optional. No full-screen gate blocks the app.
+  return;
 }
 function continueLocalMode(){
-  authGateDismissed=true;
-  sessionStorage.setItem('monBudgetAuthGateDismissed','1');
-  showAuthGate(false);
-  showToast('Mode local activé. Tu peux connecter ton compte plus tard.');
+  showToast('Mode local actif.');
 }
 function reopenAuthGate(){
-  authGateDismissed=false;
-  sessionStorage.removeItem('monBudgetAuthGateDismissed');
-  showAuthGate(true,true);
+  goToAccountSettings();
 }
 async function loadUserWorkspace(){if(!currentUser)return;const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
 function renderCloudStatus(){
   renderVisibleAccountUI();
   const el=document.getElementById('cloudStatus');const tg=document.getElementById('autoSyncToggle');if(tg)tg.checked=autoSync;
   if(!el)return;
-  if(!cloudConfigured){el.className='notice warn';el.textContent='Supabase non configuré — mode local';showAuthGate(false);return}
-  if(currentUser){el.className='notice good';el.textContent='Connecté : '+currentUser.email;showAuthGate(false)}
-  else{el.className='notice warn';el.textContent='Connecte-toi pour ouvrir ton espace privé';showAuthGate(true)}
+  if(!cloudConfigured){
+    el.className='notice warn';
+    el.textContent='Mode local — cloud non disponible';
+    return;
+  }
+  if(currentUser){
+    el.className='notice good';
+    el.textContent='Connecté : '+currentUser.email;
+  }else{
+    el.className='notice warn';
+    el.textContent='Mode local — connecte-toi seulement si tu veux activer le cloud';
+  }
 }
 async function doSignUp(email,password){
   if(!cloudConfigured){
@@ -2319,7 +2321,7 @@ async function doSignUp(email,password){
       currentUser=data.user;
       localStorage.setItem(userCacheKey(),JSON.stringify(normalizeState(state)));
       await pushCloud(true);
-      showAuthGate(false);renderCloudStatus();
+      renderCloudStatus();
       setAuthMessage('Compte créé et connecté ✅','good');
       showToast('Compte créé ✨');
     }else{
@@ -2377,7 +2379,18 @@ async function gateSignIn(){
 async function requestReset(email){if(!cloudConfigured){setGateAuthMessage('Supabase indisponible.','warn');return showToast('Supabase indisponible')}if(!email){setGateAuthMessage('Entre ton email.','warn');return showToast('Entre ton email')}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});const msg=error?('Réinitialisation impossible : '+error.message):'Email de réinitialisation envoyé ✅';setGateAuthMessage(msg,error?'warn':'good');showToast(msg)}
 async function resetPassword(){const e=document.getElementById('authEmail');return requestReset((e?.value||'').trim())}
 async function gateResetPassword(){const e=document.getElementById('gateEmail');return requestReset((e?.value||'').trim())}
-async function signOut(){if(!cloudConfigured)return;if(currentUser)await pushCloud(true);await sb.auth.signOut()}
+async function signOut(){
+  if(!cloudConfigured)return;
+  if(currentUser){
+    await pushCloud(true);
+    try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+  }
+  await sb.auth.signOut();
+  currentUser=null;
+  renderCloudStatus();
+  renderVisibleAccountUI();
+  showToast('Déconnecté — tes données locales restent disponibles');
+}
 async function pushCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}const {error}=await sb.from('budget_snapshots').upsert({user_id:currentUser.id,data:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}localStorage.setItem(userCacheKey(),JSON.stringify(state));if(document.getElementById('syncInfo'))syncInfo.textContent='Dernière synchro : '+new Date().toLocaleString('fr-BE');if(!silent)showToast('Budget sauvegardé')}
 async function pullCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}const {data,error}=await sb.from('budget_snapshots').select('data,updated_at').eq('user_id',currentUser.id).maybeSingle();if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}if(data?.data){state=normalizeState(data.data);localStorage.setItem(userCacheKey(),JSON.stringify(state));render();if(document.getElementById('syncInfo'))syncInfo.textContent='Données à jour : '+new Date(data.updated_at).toLocaleString('fr-BE')}else{state=normalizeState(state);await pushCloud(true);if(document.getElementById('syncInfo'))syncInfo.textContent='Premier espace cloud créé'}}
 function download(c,n,t){let b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u)}

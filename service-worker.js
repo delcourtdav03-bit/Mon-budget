@@ -1,4 +1,4 @@
-const CACHE='mon-budget-v24-4-4-auth-ux-fix';
+const CACHE='mon-budget-v24-4-5-local-first';
 const CORE=['./','./index.html','./style.css','./app.js','./config.js','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));

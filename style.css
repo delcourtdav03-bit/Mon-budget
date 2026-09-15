@@ -1616,3 +1616,7 @@ input:focus,select:focus,textarea:focus{
   .auth-gate-card{margin:auto 0;padding:22px 18px;border-radius:26px}
   .auth-gate-card h2{font-size:34px}
 }
+
+/* V24.4.5 — Local-first authentication */
+#authGate{display:none !important}
+.account-access-card{scroll-margin-top:18px}
