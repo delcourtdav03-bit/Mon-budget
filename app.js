@@ -2797,6 +2797,8 @@ async function resetAllLocalBudgetData(){
   }
 }
 
+window.resetAllLocalBudgetData = resetAllLocalBudgetData;
+
 function download(c,n,t){let b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u)}
 function exportBackup(){download(JSON.stringify(state,null,2),'mon_budget_v9_sauvegarde.json','application/json')}
 function importBackup(f){if(!f)return;let r=new FileReader();r.onload=()=>{try{state=normalizeState(JSON.parse(r.result));refreshCats();render();save()}catch(e){alert('Fichier invalide')}};r.readAsText(f)}

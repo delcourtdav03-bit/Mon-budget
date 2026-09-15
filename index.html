@@ -8,8 +8,8 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.4.8 Reset Local</title>
-<link rel="stylesheet" href="./style.css">
+<title>Mon Budget V24.4.8.1.1 Reset Fix</title>
+<link rel="stylesheet" href="./style.css?v=24.4.8.1">
 </head>
 <body class="luxury-v22">
 <div class="app">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.8</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.8.1</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -726,7 +726,7 @@
     <div class="danger-note top">
       Si tu es connecté au cloud, déconnecte-toi d’abord. Cela évite d’envoyer un budget vide dans Supabase par erreur.
     </div>
-    <button class="danger-reset-btn top" type="button" onclick="resetAllLocalBudgetData()">
+    <button class="danger-reset-btn top" type="button" onclick="resetAllLocalBudgetDataFixed()">
       Réinitialiser toutes les données de cet appareil
     </button>
   </div>
@@ -848,7 +848,68 @@ window.MON_BUDGET_CONFIG = {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./config.js"></script>
-<script src="./app.js"></script>
+<script src="./config.js?v=24.4.8.1"></script>
+<script src="./app.js?v=24.4.8.1"></script>
+
+<script>
+/* V24.4.8.1 — self-contained local reset fallback.
+   Kept in index.html so the button still works if an older app.js is cached. */
+async function resetAllLocalBudgetDataFixed(){
+  const ok1 = window.confirm(
+    'Réinitialiser toutes les données Mon Budget de CET APPAREIL ?\n\n' +
+    'Cela effacera les opérations, revenus, dépenses, épargne, objectifs, comptes et sauvegardes locales.\n\n' +
+    'Les données Supabase ne seront PAS supprimées.'
+  );
+  if(!ok1) return false;
+
+  const ok2 = window.confirm(
+    'Dernière confirmation.\n\nCette action efface les données locales de cet appareil. Continuer ?'
+  );
+  if(!ok2) return false;
+
+  try{
+    // If a Supabase session is active, sign out only on this device first.
+    try{
+      if(typeof sb !== 'undefined' && sb && sb.auth){
+        await sb.auth.signOut({scope:'local'});
+      }
+    }catch(authErr){
+      console.warn('Local Supabase sign-out skipped', authErr);
+    }
+
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k) continue;
+
+      const isMonBudgetData =
+        /^monBudget/i.test(k) ||
+        /^sb-[^-]+-auth-token$/i.test(k);
+
+      if(isMonBudgetData){
+        keys.push(k);
+      }
+    }
+
+    keys.forEach(k=>localStorage.removeItem(k));
+
+    try{ sessionStorage.clear(); }catch(e){}
+
+    window.alert(
+      'Réinitialisation terminée ✅\n\n' +
+      'Les données locales de cet appareil ont été effacées. Le cloud Supabase n’a pas été supprimé.'
+    );
+
+    // Hard reload gives the app a clean blank state.
+    window.location.reload();
+    return true;
+  }catch(err){
+    console.error('Reset failed', err);
+    window.alert('Erreur pendant la réinitialisation : ' + (err?.message || String(err)));
+    return false;
+  }
+}
+</script>
+
 </body>
 </html>
