@@ -1541,3 +1541,7 @@ input:focus,select:focus,textarea:focus{
   height:58px !important;
   border-radius:18px !important;
 }
+.auth-gate,.auth-gate-card,.auth-gate-card input,.auth-gate-card button{pointer-events:auto!important}
+.auth-gate-card input,.auth-gate-card button{touch-action:manipulation}
+.auth-gate-message{min-height:18px;margin-top:12px;padding:9px 11px;border-radius:12px;font-size:11px;line-height:1.4;text-align:center;color:#9ca8ad}
+.auth-gate-message:empty{display:none}.auth-gate-message.good{display:block;background:#0d2b22;color:#9df0cf;border:1px solid #24513f}.auth-gate-message.warn{display:block;background:#2c2415;color:#eed6a4;border:1px solid #55462a}

@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.4.2 Auth Diagnostic</title>
+<title>Mon Budget V24.4.3 Auth Fix</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.2</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.3</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -711,11 +711,12 @@
     <div class="eyebrow">Mon Budget Cloud</div>
     <h2>Ton budget.<br>Rien qu’à toi.</h2>
     <p class="muted">Connecte-toi pour retrouver tes données sur tous tes appareils.</p>
-    <input id="gateEmail" type="email" autocomplete="email" placeholder="Email">
+    <input id="gateEmail" type="email" autocomplete="email" inputmode="email" placeholder="Email">
     <input id="gatePassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mot de passe">
-    <button class="primary full" onclick="gateSignIn()">Se connecter</button>
-    <button class="secondary full" onclick="gateSignUp()">Créer mon compte</button>
-    <button class="linkbtn" onclick="gateResetPassword()">Mot de passe oublié ?</button>
+    <button type="button" class="primary full" onclick="gateSignIn()">Se connecter</button>
+    <button type="button" class="secondary full" onclick="gateSignUp()">Créer mon compte</button>
+    <button type="button" class="linkbtn" onclick="gateResetPassword()">Mot de passe oublié ?</button>
+    <div id="gateAuthMessage" class="auth-gate-message" role="status" aria-live="polite"></div>
     <div class="auth-footnote">Chaque utilisateur possède son propre espace privé.</div>
   </div>
 </div>
@@ -794,8 +795,8 @@
 <script>
 // Remplace ces 2 valeurs pour activer la synchronisation cloud.
 window.MON_BUDGET_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: ""
+  SUPABASE_URL: "https://gjjvhxgsvotracqhpkgf.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_aKFUnHeME3sUYqVSs8f2Ag_uhzcqudP"
 };
 
 </script>

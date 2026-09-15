@@ -2144,6 +2144,7 @@ async function enableNotifications(){
 
 
 function setAuthMessage(message,type='warn'){
+  setGateAuthMessage(message,type);
   const ids=['accountModeBanner','authDiagnostic'];
   ids.forEach(id=>{
     const el=document.getElementById(id);
@@ -2157,6 +2158,16 @@ function goToAccountSettings(){
   const btn=[...document.querySelectorAll('.bottomnav button')].find(b=>b.getAttribute('onclick')?.includes("nav('settings'"));
   if(btn)nav('settings',btn);
   setTimeout(()=>document.querySelector('.account-access-card')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
+}
+function authRedirectUrl(){
+  if(location.protocol==='http:'||location.protocol==='https:') return location.origin+location.pathname;
+  return 'https://delcourtdav03-bit.github.io/Mon-budget/';
+}
+function setGateAuthMessage(message,type='warn'){
+  const el=document.getElementById('gateAuthMessage');
+  if(!el)return;
+  el.className='auth-gate-message '+(type==='good'?'good':'warn');
+  el.textContent=message||'';
 }
 function syncVisibleAuthFields(){
   const email=(document.getElementById('visibleAuthEmail')?.value||'').trim();
@@ -2267,7 +2278,7 @@ async function doSignUp(email,password){
     setAuthMessage(msg,'warn');showToast(msg);return false;
   }
   try{
-    const {data,error}=await sb.auth.signUp({email,password});
+    const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl()}});
     if(error){
       const msg='Création impossible : '+error.message;
       setAuthMessage(msg,'warn');showToast(msg);return false;
@@ -2315,13 +2326,13 @@ async function doSignIn(email,password){
     setAuthMessage(msg,'warn');showToast(msg);return false;
   }
 }
-async function signUp(){return doSignUp(authEmail.value.trim(),authPassword.value)}
-async function signIn(){return doSignIn(authEmail.value.trim(),authPassword.value)}
-async function gateSignUp(){return doSignUp(gateEmail.value.trim(),gatePassword.value)}
-async function gateSignIn(){return doSignIn(gateEmail.value.trim(),gatePassword.value)}
-async function requestReset(email){if(!cloudConfigured)return showToast('Configure Supabase dans config.js');if(!email)return showToast('Entre ton email');const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});showToast(error?error.message:'Email de réinitialisation envoyé')}
-async function resetPassword(){return requestReset(authEmail.value.trim())}
-async function gateResetPassword(){return requestReset(gateEmail.value.trim())}
+async function signUp(){const e=document.getElementById('authEmail');const p=document.getElementById('authPassword');return doSignUp((e?.value||'').trim(),p?.value||'')}
+async function signIn(){const e=document.getElementById('authEmail');const p=document.getElementById('authPassword');return doSignIn((e?.value||'').trim(),p?.value||'')}
+async function gateSignUp(){const e=document.getElementById('gateEmail');const p=document.getElementById('gatePassword');setGateAuthMessage('Création du compte en cours…','warn');return doSignUp((e?.value||'').trim(),p?.value||'')}
+async function gateSignIn(){const e=document.getElementById('gateEmail');const p=document.getElementById('gatePassword');setGateAuthMessage('Connexion en cours…','warn');return doSignIn((e?.value||'').trim(),p?.value||'')}
+async function requestReset(email){if(!cloudConfigured){setGateAuthMessage('Supabase indisponible.','warn');return showToast('Supabase indisponible')}if(!email){setGateAuthMessage('Entre ton email.','warn');return showToast('Entre ton email')}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});const msg=error?('Réinitialisation impossible : '+error.message):'Email de réinitialisation envoyé ✅';setGateAuthMessage(msg,error?'warn':'good');showToast(msg)}
+async function resetPassword(){const e=document.getElementById('authEmail');return requestReset((e?.value||'').trim())}
+async function gateResetPassword(){const e=document.getElementById('gateEmail');return requestReset((e?.value||'').trim())}
 async function signOut(){if(!cloudConfigured)return;if(currentUser)await pushCloud(true);await sb.auth.signOut()}
 async function pushCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}const {error}=await sb.from('budget_snapshots').upsert({user_id:currentUser.id,data:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}localStorage.setItem(userCacheKey(),JSON.stringify(state));if(document.getElementById('syncInfo'))syncInfo.textContent='Dernière synchro : '+new Date().toLocaleString('fr-BE');if(!silent)showToast('Budget sauvegardé')}
 async function pullCloud(silent=false){if(!cloudConfigured||!currentUser){if(!silent)showToast('Connecte-toi');return}const {data,error}=await sb.from('budget_snapshots').select('data,updated_at').eq('user_id',currentUser.id).maybeSingle();if(error){if(!silent)showToast('Erreur cloud : '+error.message);return}if(data?.data){state=normalizeState(data.data);localStorage.setItem(userCacheKey(),JSON.stringify(state));render();if(document.getElementById('syncInfo'))syncInfo.textContent='Données à jour : '+new Date(data.updated_at).toLocaleString('fr-BE')}else{state=normalizeState(state);await pushCloud(true);if(document.getElementById('syncInfo'))syncInfo.textContent='Premier espace cloud créé'}}
@@ -2334,3 +2345,6 @@ render();initCloud();setupOnboarding();initPrivacy();
 
 
 showDataMigrationNotice();
+
+window.addEventListener('error',function(ev){try{setGateAuthMessage('Erreur de l’application : '+(ev.message||'inconnue'),'warn')}catch(e){}});
+window.addEventListener('unhandledrejection',function(ev){try{setGateAuthMessage('Erreur réseau/application : '+(ev.reason?.message||String(ev.reason||'inconnue')),'warn')}catch(e){}});
