@@ -200,6 +200,7 @@ const cfg=window.MON_BUDGET_CONFIG||{};
 const cloudConfigured=!!(cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&window.supabase);
 const sb=cloudConfigured?window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY):null;
 let currentUser=null;
+let authGateDismissed=sessionStorage.getItem('monBudgetAuthGateDismissed')==='1';
 let autoSync=localStorage.getItem('monBudgetAutoSync')===null?true:localStorage.getItem('monBudgetAutoSync')==='1';
 let syncTimer=null;
 
@@ -2155,6 +2156,7 @@ function setAuthMessage(message,type='warn'){
 }
 
 function goToAccountSettings(){
+  if(cloudConfigured&&!currentUser){reopenAuthGate();return}
   const btn=[...document.querySelectorAll('.bottomnav button')].find(b=>b.getAttribute('onclick')?.includes("nav('settings'"));
   if(btn)nav('settings',btn);
   setTimeout(()=>document.querySelector('.account-access-card')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
@@ -2168,6 +2170,12 @@ function setGateAuthMessage(message,type='warn'){
   if(!el)return;
   el.className='auth-gate-message '+(type==='good'?'good':'warn');
   el.textContent=message||'';
+}
+
+function setAuthBusy(busy,label='Connexion en cours…'){
+  const ids=['gateSignInBtn','gateSignUpBtn','gateResetBtn'];
+  ids.forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=!!busy});
+  if(busy)setGateAuthMessage(label,'warn');
 }
 function syncVisibleAuthFields(){
   const email=(document.getElementById('visibleAuthEmail')?.value||'').trim();
@@ -2239,7 +2247,15 @@ function renderVisibleAccountUI(){
 
 async function initCloud(){
   if(!cloudConfigured){showAuthGate(false);renderCloudStatus();return}
-  const {data}=await sb.auth.getSession();currentUser=data.session?.user||null;
+  let data=null;
+  try{
+    const result=await sb.auth.getSession();data=result.data;
+  }catch(err){
+    showAuthGate(true,true);
+    setGateAuthMessage('Impossible de charger la session Supabase : '+(err?.message||String(err)),'warn');
+    return;
+  }
+  currentUser=data?.session?.user||null;
   sb.auth.onAuthStateChange(async(event,session)=>{
     currentUser=session?.user||null;renderCloudStatus();
     if(currentUser&&(event==='SIGNED_IN'||event==='INITIAL_SESSION'))await loadUserWorkspace();
@@ -2254,7 +2270,23 @@ async function initCloud(){
 }
 function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],savingsEnvelopes:[],freeSavingsBalances:{},freeSavingsMovements:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
 function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.savingsEnvelopes)x.savingsEnvelopes=[];if(!x.freeSavingsBalances)x.freeSavingsBalances={};if(!x.freeSavingsMovements)x.freeSavingsMovements=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));x=migrateSavingsImpactV1(x);x=stabilizeFinancialData(x);return x}
-function showAuthGate(v){document.getElementById('authGate')?.classList.toggle('hidden',!v)}
+function showAuthGate(v,force=false){
+  const gate=document.getElementById('authGate');if(!gate)return;
+  if(v&&authGateDismissed&&!force){gate.classList.add('hidden');return}
+  gate.classList.toggle('hidden',!v);
+  if(v){setTimeout(()=>document.getElementById('gateEmail')?.focus({preventScroll:true}),80)}
+}
+function continueLocalMode(){
+  authGateDismissed=true;
+  sessionStorage.setItem('monBudgetAuthGateDismissed','1');
+  showAuthGate(false);
+  showToast('Mode local activé. Tu peux connecter ton compte plus tard.');
+}
+function reopenAuthGate(){
+  authGateDismissed=false;
+  sessionStorage.removeItem('monBudgetAuthGateDismissed');
+  showAuthGate(true,true);
+}
 async function loadUserWorkspace(){if(!currentUser)return;const cached=localStorage.getItem(userCacheKey());if(cached){try{state=normalizeState(JSON.parse(cached));render()}catch(e){}}await pullCloud(true)}
 function renderCloudStatus(){
   renderVisibleAccountUI();
@@ -2291,7 +2323,8 @@ async function doSignUp(email,password){
       setAuthMessage('Compte créé et connecté ✅','good');
       showToast('Compte créé ✨');
     }else{
-      setAuthMessage('Compte créé ✅ Vérifie maintenant ton email pour confirmer ton compte.','good');
+      setAuthMessage('Compte créé ✅ Vérifie le nouvel email de confirmation, puis reviens ici pour te connecter.','good');
+      showAuthGate(true,true);
       showToast('Compte créé. Vérifie ton email.');
     }
     return true;
@@ -2316,6 +2349,7 @@ async function doSignIn(email,password){
       setAuthMessage(msg,'warn');showToast(msg);return false;
     }
     currentUser=data.user;
+    authGateDismissed=false;sessionStorage.removeItem('monBudgetAuthGateDismissed');
     await loadUserWorkspace();
     renderCloudStatus();renderVisibleAccountUI();showAuthGate(false);
     setAuthMessage('Compte connecté ✅','good');
@@ -2328,8 +2362,18 @@ async function doSignIn(email,password){
 }
 async function signUp(){const e=document.getElementById('authEmail');const p=document.getElementById('authPassword');return doSignUp((e?.value||'').trim(),p?.value||'')}
 async function signIn(){const e=document.getElementById('authEmail');const p=document.getElementById('authPassword');return doSignIn((e?.value||'').trim(),p?.value||'')}
-async function gateSignUp(){const e=document.getElementById('gateEmail');const p=document.getElementById('gatePassword');setGateAuthMessage('Création du compte en cours…','warn');return doSignUp((e?.value||'').trim(),p?.value||'')}
-async function gateSignIn(){const e=document.getElementById('gateEmail');const p=document.getElementById('gatePassword');setGateAuthMessage('Connexion en cours…','warn');return doSignIn((e?.value||'').trim(),p?.value||'')}
+async function gateSignUp(){
+  const e=document.getElementById('gateEmail');const p=document.getElementById('gatePassword');
+  setAuthBusy(true,'Création du compte en cours…');
+  try{return await doSignUp((e?.value||'').trim(),p?.value||'')}
+  finally{setAuthBusy(false)}
+}
+async function gateSignIn(){
+  const e=document.getElementById('gateEmail');const p=document.getElementById('gatePassword');
+  setAuthBusy(true,'Connexion en cours…');
+  try{return await doSignIn((e?.value||'').trim(),p?.value||'')}
+  finally{setAuthBusy(false)}
+}
 async function requestReset(email){if(!cloudConfigured){setGateAuthMessage('Supabase indisponible.','warn');return showToast('Supabase indisponible')}if(!email){setGateAuthMessage('Entre ton email.','warn');return showToast('Entre ton email')}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});const msg=error?('Réinitialisation impossible : '+error.message):'Email de réinitialisation envoyé ✅';setGateAuthMessage(msg,error?'warn':'good');showToast(msg)}
 async function resetPassword(){const e=document.getElementById('authEmail');return requestReset((e?.value||'').trim())}
 async function gateResetPassword(){const e=document.getElementById('gateEmail');return requestReset((e?.value||'').trim())}

@@ -1545,3 +1545,74 @@ input:focus,select:focus,textarea:focus{
 .auth-gate-card input,.auth-gate-card button{touch-action:manipulation}
 .auth-gate-message{min-height:18px;margin-top:12px;padding:9px 11px;border-radius:12px;font-size:11px;line-height:1.4;text-align:center;color:#9ca8ad}
 .auth-gate-message:empty{display:none}.auth-gate-message.good{display:block;background:#0d2b22;color:#9df0cf;border:1px solid #24513f}.auth-gate-message.warn{display:block;background:#2c2415;color:#eed6a4;border:1px solid #55462a}
+
+
+/* V24.4.4 — Auth UX reliability */
+.auth-gate{
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.auth-gate-card{
+  position:relative;
+  z-index:1;
+  max-height:calc(100dvh - 28px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.auth-gate-card,.auth-gate-card *{
+  pointer-events:auto !important;
+}
+.auth-gate-form{display:block;position:relative;z-index:2}
+.auth-field-label{
+  display:block;
+  margin:12px 2px 6px;
+  color:#9ca8ad;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+.auth-gate-card input{
+  position:relative;
+  z-index:2;
+  width:100%;
+  min-height:56px;
+  -webkit-user-select:text !important;
+  user-select:text !important;
+  touch-action:auto !important;
+  cursor:text;
+}
+.auth-gate-card button{
+  position:relative;
+  z-index:2;
+  min-height:52px;
+  touch-action:manipulation !important;
+  cursor:pointer;
+}
+.auth-gate-card button:disabled{opacity:.55;cursor:wait}
+.auth-gate-message{
+  display:block;
+  min-height:42px;
+  margin-top:12px;
+  padding:11px 12px;
+  background:#0b171c;
+  border:1px solid #1d3038;
+  color:#a9b3b8;
+}
+.auth-gate-message:empty{display:block}
+.auth-local-btn{
+  width:100%;
+  margin-top:8px;
+  padding:10px 8px;
+  border:0;
+  background:transparent;
+  color:#839097;
+  font-size:11px;
+  font-weight:750;
+}
+.toast{z-index:450 !important}
+@media(max-width:520px){
+  .auth-gate{align-items:flex-start;padding:12px;padding-top:max(12px,env(safe-area-inset-top))}
+  .auth-gate-card{margin:auto 0;padding:22px 18px;border-radius:26px}
+  .auth-gate-card h2{font-size:34px}
+}

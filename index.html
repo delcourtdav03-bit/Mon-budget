@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.4.3 Auth Fix</title>
+<title>Mon Budget V24.4.4 Auth UX Fix</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.3</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.4</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -711,12 +711,17 @@
     <div class="eyebrow">Mon Budget Cloud</div>
     <h2>Ton budget.<br>Rien qu’à toi.</h2>
     <p class="muted">Connecte-toi pour retrouver tes données sur tous tes appareils.</p>
-    <input id="gateEmail" type="email" autocomplete="email" inputmode="email" placeholder="Email">
-    <input id="gatePassword" type="password" autocomplete="current-password" minlength="6" placeholder="Mot de passe">
-    <button type="button" class="primary full" onclick="gateSignIn()">Se connecter</button>
-    <button type="button" class="secondary full" onclick="gateSignUp()">Créer mon compte</button>
-    <button type="button" class="linkbtn" onclick="gateResetPassword()">Mot de passe oublié ?</button>
-    <div id="gateAuthMessage" class="auth-gate-message" role="status" aria-live="polite"></div>
+    <form id="authGateForm" class="auth-gate-form" onsubmit="event.preventDefault();gateSignIn();">
+      <label class="auth-field-label" for="gateEmail">Adresse email</label>
+      <input id="gateEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="ton@email.com" required>
+      <label class="auth-field-label" for="gatePassword">Mot de passe</label>
+      <input id="gatePassword" type="password" autocomplete="current-password" minlength="6" placeholder="6 caractères minimum" required>
+      <button id="gateSignInBtn" type="submit" class="primary full">Se connecter</button>
+      <button id="gateSignUpBtn" type="button" class="secondary full" onclick="gateSignUp()">Créer mon compte</button>
+      <button id="gateResetBtn" type="button" class="linkbtn" onclick="gateResetPassword()">Mot de passe oublié ?</button>
+    </form>
+    <div id="gateAuthMessage" class="auth-gate-message" role="status" aria-live="polite">Entre ton email et ton mot de passe, puis crée ton compte.</div>
+    <button type="button" class="auth-local-btn" onclick="continueLocalMode()">Continuer sans compte pour l’instant</button>
     <div class="auth-footnote">Chaque utilisateur possède son propre espace privé.</div>
   </div>
 </div>
