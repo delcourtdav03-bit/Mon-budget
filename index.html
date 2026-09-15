@@ -8,7 +8,7 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.4.7 Local Recovery</title>
+<title>Mon Budget V24.4.8 Reset Local</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body class="luxury-v22">
@@ -21,7 +21,7 @@
   <div class="header-actions">
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.7</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.4.8</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -709,6 +709,28 @@
 
 <div class="card"><h3>Sauvegarde</h3><button class="primary" onclick="exportBackup()">Exporter sauvegarde</button><label class="secondary import">Importer<input type="file" accept="application/json" hidden onchange="importBackup(this.files[0])"></label></div>
   <div class="card"><h3>Excel / Sheets</h3><button class="primary" onclick="exportCSV()">Exporter CSV</button></div>
+
+  <div class="card danger-zone-card">
+    <div class="rowtitle">
+      <div>
+        <div class="label danger-label">Zone dangereuse</div>
+        <h3>Réinitialiser mes données</h3>
+      </div>
+      <span class="danger-chip">Irréversible</span>
+    </div>
+    <div class="muted">
+      Efface toutes les données Mon Budget stockées sur cet appareil :
+      opérations, épargne, objectifs, comptes, anciennes sauvegardes locales et historique de récupération.
+      Le cloud Supabase n’est pas supprimé.
+    </div>
+    <div class="danger-note top">
+      Si tu es connecté au cloud, déconnecte-toi d’abord. Cela évite d’envoyer un budget vide dans Supabase par erreur.
+    </div>
+    <button class="danger-reset-btn top" type="button" onclick="resetAllLocalBudgetData()">
+      Réinitialiser toutes les données de cet appareil
+    </button>
+  </div>
+
 </section>
 </div>
 

@@ -2707,6 +2707,96 @@ function restoreRecoveryCandidate(encodedKey){
   }
 }
 
+
+function localBudgetDataKeys(){
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k)continue;
+
+    // Financial / app-data keys only.
+    // Preferences such as theme and auto-sync are intentionally kept.
+    const isBudgetData =
+      /^monBudgetV\d/i.test(k) ||
+      /^monBudgetRecoverySafety:/i.test(k) ||
+      /^monBudgetRecovered/i.test(k) ||
+      /^monBudgetLastMigrationSource$/i.test(k);
+
+    if(isBudgetData && k!=='monBudgetTheme' && k!=='monBudgetAutoSync'){
+      keys.push(k);
+    }
+  }
+  return keys;
+}
+
+async function resetAllLocalBudgetData(){
+  if(currentUser){
+    alert(
+      'Tu es encore connecté au cloud.\n\n' +
+      'Déconnecte-toi d’abord, puis relance la réinitialisation. ' +
+      'Comme ça, le reset reste uniquement local et ne risque pas de modifier ton espace Supabase.'
+    );
+    return false;
+  }
+
+  const first=confirm(
+    'Réinitialiser toutes les données Mon Budget de CET APPAREIL ?\n\n' +
+    'Cela effacera les opérations, revenus, dépenses, épargne, enveloppes, objectifs, ' +
+    'comptes, budgets et anciennes sauvegardes locales.\n\n' +
+    'Les données Supabase ne seront PAS supprimées.'
+  );
+  if(!first)return false;
+
+  const typed=prompt(
+    'Dernière confirmation.\n\nTape RESET pour effacer les données locales :'
+  );
+  if(typed!=='RESET'){
+    showToast('Réinitialisation annulée');
+    return false;
+  }
+
+  // Stop any pending auto-sync just in case.
+  if(syncTimer){
+    clearTimeout(syncTimer);
+    syncTimer=null;
+  }
+
+  try{
+    const keys=localBudgetDataKeys();
+    keys.forEach(k=>localStorage.removeItem(k));
+
+    sessionStorage.removeItem('monBudgetAuthGateDismissed');
+
+    // Fresh empty local state.
+    state=blankState();
+    state=normalizeState(state);
+    localStorage.setItem(KEY,JSON.stringify(state));
+
+    view=new Date();
+    view.setDate(1);
+    refreshCats();
+    render();
+
+    const recoveryStatus=document.getElementById('localRecoveryStatus');
+    const recoveryList=document.getElementById('localRecoveryList');
+    if(recoveryStatus)recoveryStatus.textContent='Aucune ancienne donnée locale après réinitialisation.';
+    if(recoveryList)recoveryList.innerHTML='';
+
+    showToast('Données locales réinitialisées ✅');
+    alert(
+      'Réinitialisation terminée.\n\n' +
+      'Les données de cet appareil ont été effacées. ' +
+      'Ton éventuel espace cloud Supabase n’a pas été supprimé.'
+    );
+    return true;
+  }catch(err){
+    console.error('Reset local failed',err);
+    showToast('Erreur pendant la réinitialisation');
+    alert('La réinitialisation a échoué : '+(err?.message||String(err)));
+    return false;
+  }
+}
+
 function download(c,n,t){let b=new Blob([c],{type:t}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u)}
 function exportBackup(){download(JSON.stringify(state,null,2),'mon_budget_v9_sauvegarde.json','application/json')}
 function importBackup(f){if(!f)return;let r=new FileReader();r.onload=()=>{try{state=normalizeState(JSON.parse(r.result));refreshCats();render();save()}catch(e){alert('Fichier invalide')}};r.readAsText(f)}

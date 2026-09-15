@@ -1743,3 +1743,48 @@ input:focus,select:focus,textarea:focus{
   gap:8px;
   margin-top:10px;
 }
+
+/* V24.4.8 — Reset local / danger zone */
+.danger-zone-card{
+  margin-top:22px;
+  border:1px solid #512a2d !important;
+  background:
+    radial-gradient(circle at 100% 0,rgba(238,157,151,.09),transparent 30%),
+    linear-gradient(145deg,#171216,#0f0d10) !important;
+}
+.danger-label{color:#ee9d97 !important}
+.danger-chip{
+  display:inline-flex;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#321c1f;
+  color:#ffb8b2;
+  border:1px solid #5a3034;
+  font-size:9px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.danger-note{
+  padding:11px 12px;
+  border-radius:13px;
+  background:#23191a;
+  border:1px solid #3c292b;
+  color:#c8aaa8;
+  font-size:11px;
+  line-height:1.45;
+}
+.danger-reset-btn{
+  width:100%;
+  min-height:48px;
+  padding:12px 14px;
+  border-radius:14px;
+  background:#3a2023;
+  color:#ffc3be;
+  border:1px solid #6a353a;
+  font-weight:850;
+}
+.danger-reset-btn:active{
+  background:#4a262a;
+  transform:scale(.995);
+}
