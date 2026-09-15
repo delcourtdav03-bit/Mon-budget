@@ -2246,27 +2246,57 @@ function renderVisibleAccountUI(){
 }
 
 async function initCloud(){
-  if(!cloudConfigured){renderCloudStatus();return}
+  if(!cloudConfigured){
+    renderCloudStatus();
+    return;
+  }
+
+  // Subscribe first: PASSWORD_RECOVERY can fire while Supabase processes the URL.
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    currentUser=session?.user||null;
+
+    if(event==='PASSWORD_RECOVERY'){
+      passwordRecoveryActive=true;
+      openPasswordRecovery();
+      showRecoveryMessage('Lien validé. Choisis maintenant ton nouveau mot de passe.','good');
+    }
+
+    renderCloudStatus();
+    renderVisibleAccountUI();
+
+    if(currentUser&&(event==='SIGNED_IN'||event==='INITIAL_SESSION')&&!passwordRecoveryActive){
+      await loadUserWorkspace();
+    }
+
+    if(event==='SIGNED_OUT'){
+      renderCloudStatus();
+      renderVisibleAccountUI();
+      showToast('Déconnecté — mode local actif');
+    }
+  });
+
   let data=null;
   try{
-    const result=await sb.auth.getSession();data=result.data;
+    const result=await sb.auth.getSession();
+    data=result.data;
   }catch(err){
     console.warn('Impossible de charger la session Supabase',err);
     renderCloudStatus();
     return;
   }
+
   currentUser=data?.session?.user||null;
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    currentUser=session?.user||null;renderCloudStatus();
-    if(currentUser&&(event==='SIGNED_IN'||event==='INITIAL_SESSION'))await loadUserWorkspace();
-    if(event==='SIGNED_OUT'){renderCloudStatus();renderVisibleAccountUI();showToast('Déconnecté — mode local actif')}
-    if(event==='PASSWORD_RECOVERY'){
-      const p=prompt('Nouveau mot de passe (6 caractères minimum)');
-      if(p&&p.length>=6){const {error}=await sb.auth.updateUser({password:p});showToast(error?error.message:'Mot de passe mis à jour')}
-    }
-  });
   renderCloudStatus();
-  if(currentUser){await loadUserWorkspace();showAuthGate(false)}else showAuthGate(true)
+  renderVisibleAccountUI();
+
+  // Fallback for browsers where the recovery event fired before UI was ready.
+  if(recoveryUrlDetected()){
+    passwordRecoveryActive=true;
+    openPasswordRecovery();
+    showRecoveryMessage('Lien de récupération détecté. Choisis ton nouveau mot de passe.','good');
+  }else if(currentUser){
+    await loadUserWorkspace();
+  }
 }
 function blankState(){return {accounts:[{id:'main',name:'Compte principal'}],activeAccount:'main',ops:[],budgets:{main:{}},recurring:[],goals:[],monthlyPlans:{},dashboardPrefs:{donut:true,insights:true,anomalies:true,upcoming:true,predictions:true},templates:[],rules:[],savingsEntries:[],savingsEnvelopes:[],freeSavingsBalances:{},freeSavingsMovements:[],uxPrefs:{compact:false},customCategories:[],categoryRenames:{}}}
 function normalizeState(x){x=x&&typeof x==='object'?x:blankState();if(!x.accounts?.length)x.accounts=[{id:'main',name:'Compte principal'}];if(!x.activeAccount)x.activeAccount=x.accounts[0].id;if(!x.ops)x.ops=[];if(!x.budgets)x.budgets={main:{}};if(!x.recurring)x.recurring=[];if(!x.goals)x.goals=[];if(!x.monthlyPlans)x.monthlyPlans={};if(!x.dashboardPrefs)x.dashboardPrefs={donut:true,insights:true,anomalies:true,upcoming:true,predictions:true};if(!x.templates)x.templates=[];if(!x.rules)x.rules=[];if(!x.savingsEntries)x.savingsEntries=[];if(!x.savingsEnvelopes)x.savingsEnvelopes=[];if(!x.freeSavingsBalances)x.freeSavingsBalances={};if(!x.freeSavingsMovements)x.freeSavingsMovements=[];if(!x.patrimony)x.patrimony={assets:[{name:'Compte courant',amount:0},{name:'Épargne',amount:0}],debts:[]};if(!x.uxPrefs)x.uxPrefs={compact:false};if(!x.customCategories)x.customCategories=[];if(!x.categoryRenames)x.categoryRenames={};x.ops=x.ops.map(o=>({...o,accountId:o.accountId||'main',scope:o.scope||'personal',tags:Array.isArray(o.tags)?o.tags:[]}));x=migrateSavingsImpactV1(x);x=stabilizeFinancialData(x);return x}
@@ -2376,7 +2406,108 @@ async function gateSignIn(){
   try{return await doSignIn((e?.value||'').trim(),p?.value||'')}
   finally{setAuthBusy(false)}
 }
-async function requestReset(email){if(!cloudConfigured){setGateAuthMessage('Supabase indisponible.','warn');return showToast('Supabase indisponible')}if(!email){setGateAuthMessage('Entre ton email.','warn');return showToast('Entre ton email')}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});const msg=error?('Réinitialisation impossible : '+error.message):'Email de réinitialisation envoyé ✅';setGateAuthMessage(msg,error?'warn':'good');showToast(msg)}
+
+let passwordRecoveryActive=false;
+
+function recoveryUrlDetected(){
+  const hash=String(location.hash||'');
+  const search=String(location.search||'');
+  return /type=recovery/i.test(hash) || /type=recovery/i.test(search) || /access_token=/i.test(hash) && /refresh_token=/i.test(hash);
+}
+function showRecoveryMessage(message,type='warn'){
+  const el=document.getElementById('recoveryMessage');
+  if(!el)return;
+  el.className='recovery-message '+(type==='good'?'good':'warn');
+  el.textContent=message||'';
+}
+function openPasswordRecovery(){
+  passwordRecoveryActive=true;
+  const modal=document.getElementById('passwordRecoveryModal');
+  modal?.classList.remove('hidden');
+  setTimeout(()=>document.getElementById('recoveryPassword')?.focus(),120);
+}
+function closePasswordRecovery(){
+  document.getElementById('passwordRecoveryModal')?.classList.add('hidden');
+}
+function clearRecoveryUrl(){
+  try{
+    history.replaceState({},document.title,location.origin+location.pathname);
+  }catch(e){}
+}
+function cancelPasswordRecovery(){
+  passwordRecoveryActive=false;
+  closePasswordRecovery();
+  clearRecoveryUrl();
+  showToast('Réinitialisation annulée');
+}
+async function completePasswordRecovery(){
+  if(!cloudConfigured||!sb){
+    showRecoveryMessage('Supabase est indisponible. Recharge la page.','warn');
+    return false;
+  }
+  const p1=document.getElementById('recoveryPassword')?.value||'';
+  const p2=document.getElementById('recoveryPasswordConfirm')?.value||'';
+  if(p1.length<6){
+    showRecoveryMessage('Le mot de passe doit contenir au moins 6 caractères.','warn');
+    return false;
+  }
+  if(p1!==p2){
+    showRecoveryMessage('Les deux mots de passe ne correspondent pas.','warn');
+    return false;
+  }
+  const btn=document.getElementById('recoverySaveBtn');
+  if(btn){btn.disabled=true;btn.textContent='Mise à jour…'}
+  try{
+    const {error}=await sb.auth.updateUser({password:p1});
+    if(error){
+      showRecoveryMessage('Impossible de modifier le mot de passe : '+error.message,'warn');
+      return false;
+    }
+    passwordRecoveryActive=false;
+    showRecoveryMessage('Mot de passe mis à jour ✅','good');
+    showToast('Mot de passe mis à jour ✅');
+    clearRecoveryUrl();
+    setTimeout(()=>closePasswordRecovery(),900);
+    return true;
+  }catch(err){
+    showRecoveryMessage('Erreur réseau : '+(err?.message||String(err)),'warn');
+    return false;
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Enregistrer le nouveau mot de passe'}
+  }
+}
+
+async function requestReset(email){
+  if(!cloudConfigured){
+    showToast('Supabase indisponible');
+    return false;
+  }
+  if(!email){
+    showToast('Entre ton adresse email');
+    const msg=document.getElementById('accountModeBanner');
+    if(msg){msg.className='notice warn';msg.textContent='Entre ton adresse email avant de demander un nouveau mot de passe.'}
+    return false;
+  }
+  try{
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});
+    if(error){
+      const message='Réinitialisation impossible : '+error.message;
+      showToast(message);
+      const msg=document.getElementById('accountModeBanner');
+      if(msg){msg.className='notice warn';msg.textContent=message}
+      return false;
+    }
+    const message='Email de réinitialisation envoyé ✅ Vérifie ta boîte mail.';
+    showToast(message);
+    const msg=document.getElementById('accountModeBanner');
+    if(msg){msg.className='notice good';msg.textContent=message}
+    return true;
+  }catch(err){
+    const message='Erreur réseau : '+(err?.message||String(err));
+    showToast(message);
+    return false;
+  }
+}
 async function resetPassword(){const e=document.getElementById('authEmail');return requestReset((e?.value||'').trim())}
 async function gateResetPassword(){const e=document.getElementById('gateEmail');return requestReset((e?.value||'').trim())}
 async function signOut(){

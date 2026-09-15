@@ -1620,3 +1620,74 @@ input:focus,select:focus,textarea:focus{
 /* V24.4.5 — Local-first authentication */
 #authGate{display:none !important}
 .account-access-card{scroll-margin-top:18px}
+
+/* V24.4.6 — Password Recovery */
+.password-recovery-modal{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(3,8,11,.96);
+  backdrop-filter:blur(24px);
+}
+.password-recovery-modal.hidden{display:none}
+.password-recovery-card{
+  width:min(480px,100%);
+  max-height:calc(100dvh - 28px);
+  overflow:auto;
+  padding:26px;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 100% 0,rgba(215,189,138,.12),transparent 30%),
+    linear-gradient(160deg,#101d24,#081217);
+  border:1px solid #26373f;
+  box-shadow:0 40px 100px rgba(0,0,0,.65);
+}
+.password-recovery-card h2{
+  font-family:Georgia,serif;
+  font-weight:400;
+  font-size:34px;
+  line-height:1;
+  letter-spacing:-.04em;
+  margin:8px 0 12px;
+}
+.password-recovery-card label{
+  display:block;
+  margin:12px 2px 6px;
+  color:#9ca8ad;
+  font-size:11px;
+  font-weight:800;
+}
+.password-recovery-card input{
+  width:100%;
+  min-height:56px;
+  user-select:text!important;
+  -webkit-user-select:text!important;
+}
+.password-recovery-card button{margin-top:9px}
+.recovery-message{
+  min-height:18px;
+  margin-top:12px;
+  padding:10px 11px;
+  border-radius:12px;
+  font-size:11px;
+  line-height:1.4;
+  text-align:center;
+  color:#9ca8ad;
+}
+.recovery-message:empty{display:none}
+.recovery-message.good{
+  display:block;
+  background:#0d2b22;
+  color:#9df0cf;
+  border:1px solid #24513f;
+}
+.recovery-message.warn{
+  display:block;
+  background:#2c2415;
+  color:#eed6a4;
+  border:1px solid #55462a;
+}
