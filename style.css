@@ -1788,3 +1788,52 @@ input:focus,select:focus,textarea:focus{
   background:#4a262a;
   transform:scale(.995);
 }
+
+
+/* V24.4.8.2 — Prévisions : suppression des cartes crème */
+#predictionsCard .prediction{
+  background:
+    radial-gradient(circle at 100% 0,rgba(121,232,192,.055),transparent 34%),
+    linear-gradient(145deg,#101d23,#0a151a);
+  border:1px solid #21343b;
+  color:#e9edeb;
+  box-shadow:none;
+}
+
+#predictionsCard .prediction strong{
+  color:#f6f2ea;
+  font-weight:850;
+}
+
+#predictionsCard .prediction > div{
+  margin-top:4px;
+  color:#98a5a9;
+  line-height:1.45;
+}
+
+/* Alerte : reste sombre, seulement soulignée par l'ambre de la DA */
+#predictionsCard .prediction.warnx,
+body.dark #predictionsCard .prediction.warnx{
+  background:
+    radial-gradient(circle at 100% 0,rgba(232,201,150,.10),transparent 36%),
+    linear-gradient(145deg,#171a19,#0d1517);
+  border:1px solid #4a402d;
+  box-shadow:inset 3px 0 0 #d8ba82;
+  color:#f6f2ea;
+}
+
+#predictionsCard .prediction.warnx strong,
+body.dark #predictionsCard .prediction.warnx strong{
+  color:#f0d49d;
+}
+
+#predictionsCard .prediction.warnx > div,
+body.dark #predictionsCard .prediction.warnx > div{
+  color:#c4b99f;
+}
+
+@media(max-width:520px){
+  #predictionsCard .prediction{
+    padding:12px 13px;
+  }
+}

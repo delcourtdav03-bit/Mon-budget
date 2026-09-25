@@ -1,5 +1,5 @@
-const CACHE='mon-budget-v24-4-8-1-reset-fix';
-const CORE=['./','./index.html','./style.css?v=24.4.8.1','./app.js?v=24.4.8.1','./config.js?v=24.4.8.1','./manifest.json','./icon-192.png','./icon-512.png'];
+const CACHE='mon-budget-v24-4-8-2-ui-fix';
+const CORE=['./','./index.html','./style.css?v=24.4.8.2','./app.js?v=24.4.8.2','./config.js?v=24.4.8.2','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
 self.addEventListener('fetch',e=>{
