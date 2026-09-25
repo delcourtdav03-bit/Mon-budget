@@ -1,0 +1,14 @@
+V24.6.4 NOTIFICATIONS QA
+
+- JavaScript syntax: OK
+- permission UI: OK
+- 4 preference switches: OK
+- local-only preference storage: OK
+- recurring threshold smoke tests: OK
+- category 90% / over-budget split: implemented
+- high-risk only: implemented
+- end-month savings reminder: implemented
+- anti-duplicate log: implemented
+- max one notification per check: implemented
+- service-worker notification click: implemented
+- Supabase signout logic untouched

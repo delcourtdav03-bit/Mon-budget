@@ -1,0 +1,12 @@
+V24.6.1 ONBOARDING QA
+
+- JavaScript syntax: OK
+- 5 steps present: OK
+- no state mutation before final commit: implemented
+- existing-user auto-skip: implemented
+- optional actual-income creation: implemented
+- plan fixed / savings wiring: implemented
+- budget suggestion: 85% of variable room, leaving ~15% breathing room
+- restart from Plan tab: implemented
+- safety backup before reconfiguration: implemented
+- Supabase signout logic untouched

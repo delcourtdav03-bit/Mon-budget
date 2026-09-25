@@ -1,0 +1,16 @@
+V24.6 FINANCIAL QA
+
+Node syntax check: OK
+Regression tests:
+- fixed-plan-no-double-count: OK {'save_gap': 100, 'fixed_gap': 66, 'safe': 920}
+- recurring-only: OK {'save_gap': 100, 'fixed_gap': 0, 'safe': 986}
+- savings-target-reached: OK {'save_gap': 0, 'fixed_gap': 0, 'safe': 1000}
+- known-recurring-covers-plan-gap: OK {'save_gap': 200, 'fixed_gap': 0, 'safe': 900}
+
+Static checks:
+- fixed plan gap implemented
+- recurring historical mutation blocked
+- recurring monthly skip implemented
+- transfer pair delete/edit implemented
+- save/cloud dedupe implemented
+- settings diagnostic implemented

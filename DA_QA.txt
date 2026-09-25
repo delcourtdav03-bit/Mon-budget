@@ -1,0 +1,12 @@
+V24.6.5 DA QA
+
+- JavaScript syntax: OK
+- quick add CTA mint override: OK
+- timeline forced dark: OK
+- cream/beige timeline surfaces overridden: OK
+- reserve note dark teal: OK
+- "Après" badges mint: OK
+- semantic warning/danger colors retained: OK
+- financial logic untouched
+- notification logic untouched
+- Supabase logic untouched

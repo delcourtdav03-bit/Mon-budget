@@ -1,0 +1,12 @@
+V24.6.3 UPCOMING QA
+
+- JavaScript syntax: OK
+- shared timeline engine: OK
+- home preview + Plan timeline use same source: OK
+- applied recurring charges excluded: OK
+- monthly skip charges excluded: OK
+- past month returns no future timeline: OK
+- final timeline balance = financialSnapshot.safeAvailable: OK
+- action center links to new timeline: OK
+- recurring editor navigation: OK
+- Supabase signout logic untouched

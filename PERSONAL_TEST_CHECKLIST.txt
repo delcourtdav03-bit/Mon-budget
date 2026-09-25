@@ -1,0 +1,34 @@
+MON BUDGET V24.7 — CHECKLIST PERSONNELLE
+
+À tester sur téléphone principal :
+[ ] Ajouter / modifier / supprimer une dépense
+[ ] Ajouter un revenu
+[ ] Faire un transfert entre deux comptes
+[ ] Supprimer le transfert : les deux côtés disparaissent
+[ ] Ajouter un récurrent au 29, 30 ou 31
+[ ] Vérifier la timeline « À venir »
+[ ] Mettre de côté puis retirer de l'épargne
+[ ] Modifier les budgets de catégories
+[ ] Vérifier Activité et recherche
+[ ] Vérifier Stats / bilan mensuel
+[ ] Tester Prévisions / simulateur / assistant
+[ ] Tester notification système
+[ ] Créer un point de restauration manuel
+[ ] Exporter un JSON puis le réimporter
+[ ] Scanner les anciennes sauvegardes locales
+
+Cloud / deuxième appareil :
+[ ] Connexion même compte sur deux appareils
+[ ] Ajouter une opération sur A, synchroniser, récupérer sur B
+[ ] Se déconnecter de A
+[ ] Vérifier que B reste connecté
+[ ] Vérifier que les données locales de A restent visibles
+
+Hors ligne :
+[ ] Ouvrir l'application sans connexion
+[ ] Ajouter une opération
+[ ] Revenir en ligne et synchroniser
+
+À ne pas faire pendant les tests :
+- effacer les données/site du navigateur sans export récent
+- réinitialiser la zone dangereuse sans sauvegarde

@@ -1,0 +1,17 @@
+V24.7 PERSONAL QA
+
+Static checks:
+- JavaScript syntax: OK
+- local-only Supabase signout: OK
+- recurring days 29/30/31: OK
+- February/month-end clamp tests: OK
+- Activity invalid date fallback: OK
+- safe automation suggestion actions: OK
+- same-day monthly comparison helper: OK
+- rotating local safety snapshots: OK
+- import safety backup: OK
+- mobile safe-area CSS: OK
+
+Note:
+This is a static/regression pass. Real Supabase two-device behavior still needs one manual test
+with two actual sessions because the preview does not connect to the live cloud.
