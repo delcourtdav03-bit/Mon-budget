@@ -1,0 +1,12 @@
+V24.7.5 QUICK ENTRY QA
+
+- JavaScript syntax: OK
+- amount remains explicit/manual: OK
+- name field: OK
+- frequent/recent merchant shortcuts: OK
+- smart category suggestion: OK
+- fixed/variable suggestion: OK
+- manual category protection: OK
+- keyboard Enter workflow: OK
+- advanced-form handoff: OK
+- one expense created on save: OK

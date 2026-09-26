@@ -1,0 +1,12 @@
+V24.7.2 ROLLOVER QA
+
+- JavaScript syntax: OK
+- Plan card present: OK
+- Home new-month prompt present: OK
+- Modal editable values: OK
+- no operations copied: OK
+- no savings movements copied: OK
+- safety backup before apply: OK
+- monthly plan only mutation: OK
+- existing category budgets remain untouched: OK
+- recurring expenses remain untouched: OK

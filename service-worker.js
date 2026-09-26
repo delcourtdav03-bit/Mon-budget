@@ -1,18 +1,31 @@
-const CACHE='mon-budget-v24-7-personal-edition';
-const CORE=['./','./index.html','./style.css?v=24.7.0','./app.js?v=24.7.0','./config.js?v=24.7.0','./manifest.json','./icon-192.png','./icon-512.png'];
+const CACHE='mon-budget-v24-7-6-audit-fixes';
+const CORE=['./','./index.html','./style.css?v=24.7.6','./app.js?v=24.7.6','./config.js?v=24.7.6','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
-self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
-self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET')return;
-  e.respondWith(
-    fetch(e.request).then(r=>{
-      const x=r.clone();
-      caches.open(CACHE).then(c=>c.put(e.request,x));
-      return r;
-    }).catch(()=>caches.match(e.request).then(r=>r||caches.match('./index.html')))
-  )
+self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('mon-budget-')&&k!==CACHE).map(k=>caches.delete(k))))])));
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  const url=new URL(request.url);
+  const scope=new URL(self.registration.scope);
+  if(request.method!=='GET'||url.origin!==scope.origin||!url.pathname.startsWith(scope.pathname))return;
+  const corePaths=new Set(CORE.map(path=>new URL(path,scope).pathname));
+  if(request.mode!=='navigate'&&!corePaths.has(url.pathname))return;
+  event.respondWith((async()=>{
+    const cache=await caches.open(CACHE);
+    try{
+      const response=await fetch(request);
+      if(response.ok){try{await cache.put(request,response.clone())}catch(error){}}
+      return response;
+    }catch(error){
+      const cached=await cache.match(request);
+      if(cached)return cached;
+      if(request.mode==='navigate'){
+        const index=await cache.match(new URL('./index.html',scope).href);
+        if(index)return index;
+      }
+      return Response.error();
+    }
+  })());
 });
-
 
 self.addEventListener('notificationclick',event=>{
   event.notification.close();

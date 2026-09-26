@@ -1,0 +1,11 @@
+V24.7.1 NAVIGATION QA
+
+- JavaScript syntax: OK
+- bottom navigation explicit z-index: OK
+- normal screen stacking below nav: OK
+- modal/sheet stacking above nav: OK
+- opaque nav surface: OK
+- Android/iOS safe-area spacing: OK
+- additional bottom scroll room: OK
+- no financial code changed
+- no data/storage logic changed

@@ -8,8 +8,8 @@
 <link rel="icon" href="./icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Mon Budget V24.7 Personal Edition</title>
-<link rel="stylesheet" href="./style.css?v=24.7.0">
+<title>Mon Budget V24.7.6 — Correctifs</title>
+<link rel="stylesheet" href="./style.css?v=24.7.6">
 </head>
 <body class="luxury-v22">
 <div class="app">
@@ -19,9 +19,10 @@
       <div><h1>Mon Budget</h1><div class="sub">Private finance, beautifully simple</div></div>
     </div>
   <div class="header-actions">
+<button class="themebtn searchbtn" onclick="openGlobalSearch()" aria-label="Rechercher">⌕</button>
 <button class="themebtn privacybtn" onclick="togglePrivacy()" aria-label="Masquer les montants">◉</button>
 <button class="themebtn alertbtn" onclick="toggleAlertsPanel()" aria-label="Alertes">♢<span id="alertCount" class="alert-count hidden">0</span></button>
-<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.7</div></div>
+<button class="themebtn" onclick="toggleTheme()" aria-label="Changer le thème">◐</button><div class="badge">V24.7.6</div></div>
 </header>
 <div class="welcome-strip">
   <div><div class="eyebrow">Ton espace financier</div><div class="welcome-title">Clair. Élégant.<br>Maîtrisé.</div></div>
@@ -57,6 +58,17 @@
     <button class="primary" onclick="addAccount()">Ajouter</button>
   </div>
 </div>
+<div id="monthRolloverPrompt" class="month-rollover-prompt hidden">
+  <div class="month-rollover-prompt-icon">↻</div>
+  <div class="month-rollover-prompt-main">
+    <span>Nouveau mois</span>
+    <strong id="monthRolloverPromptTitle">Ton nouveau mois peut être préparé</strong>
+    <small id="monthRolloverPromptText">Reprends ton cadre du mois précédent en quelques secondes.</small>
+  </div>
+  <button id="monthRolloverPromptBtn" type="button" onclick="openSuggestedMonthRollover()">Préparer</button>
+  <button class="month-rollover-prompt-close" type="button" onclick="dismissMonthRolloverPrompt()" aria-label="Masquer">×</button>
+</div>
+
 
 
   <div class="finalplus-today smart-today" onclick="toggleAlertsPanel()">
@@ -112,6 +124,19 @@
     <div class="muted" id="percent"></div>
     <div id="globalNotice"></div><div class="hero-smart-insight" id="smartInsight">Analyse en cours…</div>
   </div>
+<div class="balance-check-card" id="balanceCheckCard">
+  <div class="balance-check-icon">◎</div>
+  <div class="balance-check-main">
+    <span>Solde bancaire</span>
+    <strong id="balanceCheckTitle">Vérifier mon solde</strong>
+    <small id="balanceCheckText">Compare Mon Budget avec le solde réel de ton compte.</small>
+  </div>
+  <div class="balance-check-side">
+    <span id="balanceCheckChip" class="balance-check-chip">À calibrer</span>
+    <button type="button" onclick="openBalanceCheck()">Vérifier</button>
+  </div>
+</div>
+
   
 
 
@@ -486,6 +511,38 @@
 </section>
 
 <section id="plan" class="section">
+
+<div class="card month-rollover-card" id="monthRolloverCard">
+  <div class="rowtitle">
+    <div>
+      <div class="label">Nouveau mois</div>
+      <h3 id="monthRolloverCardTitle">Préparer le mois suivant</h3>
+    </div>
+    <span id="monthRolloverCardChip" class="month-rollover-chip">Personnel</span>
+  </div>
+
+  <div id="monthRolloverCardText" class="muted month-rollover-card-text">
+    Reprends ton cadre mensuel sans recopier tes opérations.
+  </div>
+
+  <div class="month-rollover-summary top">
+    <div><span>Revenu prévu</span><b id="monthRolloverIncome">—</b></div>
+    <div><span>Charges fixes</span><b id="monthRolloverFixed">—</b></div>
+    <div><span>Épargne prévue</span><b id="monthRolloverSavings">—</b></div>
+  </div>
+
+  <div class="month-rollover-persist top">
+    <span>✓</span>
+    <div>
+      <strong>Déjà conservé automatiquement</strong>
+      <small>Budgets par catégorie, dépenses récurrentes, comptes, règles et enveloppes d’épargne restent actifs.</small>
+    </div>
+  </div>
+
+  <button id="monthRolloverCardBtn" class="primary full top" type="button" onclick="prepareSmartNextMonth()">
+    Préparer le mois suivant
+  </button>
+</div>
 
 <div class="card scenario-lab-card" id="scenarioLabCard">
   <div class="rowtitle">
@@ -1495,14 +1552,53 @@
   </div>
 </div>
 
-<div id="quickExpenseModal" class="quick-expense-modal hidden">
-  <div class="quick-expense-card">
+<div id="quickExpenseModal" class="quick-expense-modal hidden" onclick="closeQuickExpense(event)">
+  <div class="quick-expense-card quick-expense-smart" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
-    <div class="rowtitle"><h3>Ajouter une dépense</h3><button class="secondary compact" onclick="closeQuickExpense()">✕</button></div>
-    <input id="qeAmount" type="number" step="0.01" min="0" placeholder="Montant (€)" inputmode="decimal">
-    <select id="qeCat"></select>
-    <button class="primary" onclick="saveQuickExpense()">Ajouter</button>
-    <button class="secondary full" onclick="openAdvancedExpense()">Plus d’options</button>
+
+    <div class="rowtitle quick-expense-head">
+      <div>
+        <div class="label">Saisie express</div>
+        <h3>Ajouter une dépense</h3>
+      </div>
+      <button class="secondary compact" type="button" onclick="closeQuickExpense()">✕</button>
+    </div>
+
+    <div class="qe-amount-wrap">
+      <input id="qeAmount" type="number" step="0.01" min="0" placeholder="0,00" inputmode="decimal" onkeydown="quickExpenseAmountKey(event)">
+      <span>€</span>
+    </div>
+
+    <div id="qeFavoritesWrap" class="qe-favorites-wrap">
+      <div class="qe-section-title"><span>Habitudes</span><small>1 toucher pour préremplir</small></div>
+      <div id="qeFavorites" class="qe-favorites"></div>
+    </div>
+
+    <label class="qe-field-label" for="qeName">Commerçant / nom</label>
+    <input id="qeName" autocomplete="off" placeholder="Ex. Delhaize, IKEA, essence…" oninput="renderQuickExpenseSuggestion()" onkeydown="quickExpenseNameKey(event)">
+
+    <div id="qeSmartHint" class="qe-smart-hint hidden"></div>
+
+    <div class="qe-choice-grid">
+      <label>
+        <span>Catégorie</span>
+        <select id="qeCat" onchange="quickExpenseManualCategory=true"></select>
+      </label>
+      <div>
+        <span class="qe-choice-label">Type</span>
+        <div class="qe-nature-switch">
+          <button id="qeNatureVariable" class="active" type="button" onclick="setQuickExpenseNature('variable')">Variable</button>
+          <button id="qeNatureFixed" type="button" onclick="setQuickExpenseNature('fixed')">Fixe</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="qe-actions">
+      <button id="qeSaveBtn" class="primary" type="button" onclick="saveQuickExpense()">Ajouter la dépense</button>
+      <button class="secondary" type="button" onclick="openAdvancedExpense()">Plus d’options</button>
+    </div>
+
+    <div class="qe-keyboard-hint">Montant → Entrée → nom → Entrée pour enregistrer</div>
   </div>
 </div>
 
@@ -1519,6 +1615,163 @@
     <button class="sheet-action" onclick="openSavingPanel()"><span>⬒</span><div><b>Mettre de côté</b><small>Ajouter une vraie épargne du mois</small></div></button>
 <button class="sheet-action" onclick="openBudgetAssistant()"><span>✦</span><div><b>Assistant budget</b><small>Pose une question sur ton mois</small></div></button>
     <button class="secondary full top" onclick="closeQuickAdd()">Fermer</button>
+  </div>
+</div>
+
+
+<div id="monthRolloverModal" class="month-rollover-modal hidden" onclick="closeMonthRollover(event)">
+  <div class="month-rollover-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+
+    <div class="rowtitle">
+      <div>
+        <div class="label">Nouveau mois intelligent</div>
+        <h3 id="monthRolloverModalTitle">Préparer le mois</h3>
+      </div>
+      <button class="secondary compact" type="button" onclick="closeMonthRollover()">✕</button>
+    </div>
+
+    <div id="monthRolloverModalText" class="muted month-rollover-modal-text">
+      Choisis ce que tu veux reprendre. Aucune dépense réelle ne sera copiée.
+    </div>
+
+    <div class="month-rollover-copy-list top">
+      <label>
+        <input id="rolloverIncomeEnabled" type="checkbox" checked onchange="renderRolloverDraftSummary()">
+        <span><strong>Revenu mensuel prévu</strong><small>Le montant prévu, pas une entrée d’argent réelle.</small></span>
+        <div class="month-rollover-money"><input id="rolloverIncomeValue" type="number" min="0" step="0.01" inputmode="decimal" oninput="renderRolloverDraftSummary()"><i>€</i></div>
+      </label>
+
+      <label>
+        <input id="rolloverFixedEnabled" type="checkbox" checked onchange="renderRolloverDraftSummary()">
+        <span><strong>Charges fixes prévues</strong><small>Le montant prudent réservé pour le nouveau mois.</small></span>
+        <div class="month-rollover-money"><input id="rolloverFixedValue" type="number" min="0" step="0.01" inputmode="decimal" oninput="renderRolloverDraftSummary()"><i>€</i></div>
+      </label>
+
+      <label>
+        <input id="rolloverSavingsEnabled" type="checkbox" checked onchange="renderRolloverDraftSummary()">
+        <span><strong>Objectif d’épargne</strong><small>Le montant à protéger dans ton budget du mois.</small></span>
+        <div class="month-rollover-money"><input id="rolloverSavingsValue" type="number" min="0" step="0.01" inputmode="decimal" oninput="renderRolloverDraftSummary()"><i>€</i></div>
+      </label>
+    </div>
+
+    <div class="month-rollover-preview">
+      <div>
+        <span>Reste théorique après fixes + épargne</span>
+        <strong id="rolloverDraftAvailable">—</strong>
+      </div>
+      <small id="rolloverDraftHint">Tu pourras encore tout modifier ensuite.</small>
+    </div>
+
+    <div class="month-rollover-safety">
+      <span>◈</span>
+      <div>
+        <strong>Pas de doublons</strong>
+        <small>Les dépenses, revenus reçus et mouvements d’épargne du mois précédent ne sont jamais copiés.</small>
+      </div>
+    </div>
+
+    <div class="grid2 top">
+      <button class="secondary" type="button" onclick="closeMonthRollover()">Annuler</button>
+      <button class="primary" type="button" onclick="applySmartMonthRollover()">Préparer et ouvrir</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="balanceCheckModal" class="balance-check-modal hidden" onclick="closeBalanceCheck(event)">
+  <div class="balance-check-sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+
+    <div class="rowtitle">
+      <div>
+        <div class="label">Vérification personnelle</div>
+        <h3>Mon solde bancaire</h3>
+      </div>
+      <button class="secondary compact" type="button" onclick="closeBalanceCheck()">✕</button>
+    </div>
+
+    <div class="balance-check-account">
+      <span>Compte vérifié</span>
+      <strong id="balanceCheckAccountName">Compte principal</strong>
+    </div>
+
+    <div id="balanceCheckExpectedBox" class="balance-check-expected">
+      <span>Solde attendu par Mon Budget</span>
+      <strong id="balanceCheckExpected">—</strong>
+      <small id="balanceCheckExpectedText">La première vérification servira de point de départ.</small>
+    </div>
+
+    <label class="balance-check-input-label" for="balanceCheckReal">
+      Solde réel affiché dans ta banque
+    </label>
+    <div class="balance-check-money-input">
+      <input id="balanceCheckReal" type="number" step="0.01" inputmode="decimal" placeholder="Ex. 842,36" oninput="renderBalanceCheckDraft()">
+      <span>€</span>
+    </div>
+
+    <div id="balanceCheckResult" class="balance-check-result neutral">
+      <div class="balance-check-result-icon">◎</div>
+      <div>
+        <strong>Entre ton solde réel</strong>
+        <small>Mon Budget comparera ensuite les deux montants.</small>
+      </div>
+    </div>
+
+    <div id="balanceCheckDeltaBox" class="balance-check-delta hidden">
+      <div><span>Écart détecté</span><b id="balanceCheckDelta">0 €</b></div>
+      <small id="balanceCheckDeltaHint"></small>
+    </div>
+
+    <div class="balance-check-explain">
+      <span>Comment ça marche ?</span>
+      <small>La première vérification calibre le compte. Ensuite, Mon Budget ajoute ou retire les revenus, dépenses et transferts que tu enregistres pour estimer ton solde bancaire.</small>
+    </div>
+
+    <div id="balanceCheckAdjustmentInfo" class="balance-check-adjustment-info hidden">
+      <strong>Tu ne retrouves pas l’opération manquante ?</strong>
+      <small>Tu peux ajouter l’écart comme “Ajustement de solde”. Fais-le seulement si tu ne souhaites pas encoder la vraie opération.</small>
+    </div>
+
+    <div class="balance-check-actions top">
+      <button id="balanceCheckAdjustmentBtn" class="secondary hidden" type="button" onclick="applyBalanceAdjustment()">Ajouter l’écart</button>
+      <button id="balanceCheckSaveBtn" class="primary" type="button" onclick="saveBalanceCheck()">Utiliser comme point de départ</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="globalSearchModal" class="global-search-modal hidden" onclick="closeGlobalSearch(event)">
+  <div class="global-search-sheet" onclick="event.stopPropagation()">
+    <div class="global-search-top">
+      <button class="global-search-back" type="button" onclick="closeGlobalSearch()" aria-label="Fermer">‹</button>
+      <div class="global-search-input-wrap">
+        <span>⌕</span>
+        <input id="globalSearchInput" autocomplete="off" inputmode="search" placeholder="Rechercher dans Mon Budget…" oninput="renderGlobalSearch()">
+        <button id="globalSearchClear" class="hidden" type="button" onclick="clearGlobalSearch()" aria-label="Effacer">×</button>
+      </div>
+    </div>
+
+    <div class="global-search-hint">
+      Essaie un commerçant, une catégorie, un montant, une date ou un objectif.
+    </div>
+
+    <div id="globalSearchFilters" class="global-search-filters">
+      <button class="active" type="button" data-search-filter="all" onclick="setGlobalSearchFilter('all',this)">Tout</button>
+      <button type="button" data-search-filter="operation" onclick="setGlobalSearchFilter('operation',this)">Opérations</button>
+      <button type="button" data-search-filter="recurring" onclick="setGlobalSearchFilter('recurring',this)">Récurrents</button>
+      <button type="button" data-search-filter="saving" onclick="setGlobalSearchFilter('saving',this)">Épargne</button>
+      <button type="button" data-search-filter="goal" onclick="setGlobalSearchFilter('goal',this)">Objectifs</button>
+    </div>
+
+    <div id="globalSearchMeta" class="global-search-meta">Commence à écrire pour rechercher.</div>
+    <div id="globalSearchResults" class="global-search-results">
+      <div class="global-search-empty">
+        <span>⌕</span>
+        <strong>Recherche globale</strong>
+        <small>Retrouve rapidement ce que tu as enregistré dans l’application.</small>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1541,9 +1794,9 @@ window.MON_BUDGET_CONFIG = {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./config.js?v=24.7.0"></script>
+<script src="./config.js?v=24.7.6"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="./app.js?v=24.7.0"></script>
+<script src="./app.js?v=24.7.6"></script>
 
 <script>
 /* V24.6.1 — self-contained local reset fallback.

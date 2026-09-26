@@ -1,0 +1,13 @@
+V24.7.3 BALANCE CHECK QA
+
+- JavaScript syntax: OK
+- state normalization: OK
+- per-account reconciliation: OK
+- ledger income/expense/transfers: OK
+- savings entries excluded from bank ledger: OK
+- initial calibration: implemented
+- later expected-balance calculation: implemented
+- discrepancy interpretation: implemented
+- optional adjustment with confirmation: implemented
+- 12-entry history cap: implemented
+- recovery backup before write: implemented

@@ -1,0 +1,13 @@
+V24.7.4 SEARCH QA
+
+- JavaScript syntax: OK
+- search header button: OK
+- modal / mobile layout: OK
+- accent-insensitive normalization: OK
+- amounts with comma/point indexed: OK
+- operation index: OK
+- recurring index: OK
+- savings index: OK
+- goals/envelopes index: OK
+- category-budget index: OK
+- search is read-only: OK

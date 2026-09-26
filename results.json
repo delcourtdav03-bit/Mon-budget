@@ -1,0 +1,119 @@
+{
+  "pass": 28,
+  "fail": 0,
+  "results": [
+    {
+      "name": "Démarrage et rendu sans erreur DOM",
+      "pass": true
+    },
+    {
+      "name": "Date locale après minuit",
+      "pass": true
+    },
+    {
+      "name": "Date locale au changement de mois",
+      "pass": true
+    },
+    {
+      "name": "Plan explicite avec épargne zéro",
+      "pass": true
+    },
+    {
+      "name": "Objectif utilisé en absence de plan",
+      "pass": true
+    },
+    {
+      "name": "Charges et épargne réservées une seule fois",
+      "pass": true
+    },
+    {
+      "name": "Épargne existante exclue du budget mensuel",
+      "pass": true
+    },
+    {
+      "name": "Catégorie express manuelle prioritaire sur règle",
+      "pass": true
+    },
+    {
+      "name": "Ajout express puis persistance locale",
+      "pass": true
+    },
+    {
+      "name": "Montant express négatif refusé",
+      "pass": true
+    },
+    {
+      "name": "Épargne négative refusée",
+      "pass": true
+    },
+    {
+      "name": "Objectif dépassé puis annulation réversible",
+      "pass": true
+    },
+    {
+      "name": "Objectif dépassé préservé au rechargement",
+      "pass": true
+    },
+    {
+      "name": "Virgule décimale dans ajout à objectif",
+      "pass": true
+    },
+    {
+      "name": "Suppression de dépôt déjà retiré bloquée",
+      "pass": true
+    },
+    {
+      "name": "Réduction de dépôt déjà retiré bloquée",
+      "pass": true
+    },
+    {
+      "name": "Suppression dépôt libre déjà retiré bloquée",
+      "pass": true
+    },
+    {
+      "name": "Suppression épargne disponible réversible",
+      "pass": true
+    },
+    {
+      "name": "Dates impossibles refusées à l’import",
+      "pass": true
+    },
+    {
+      "name": "Date bissextile et format Excel acceptés",
+      "pass": true
+    },
+    {
+      "name": "JSON sans budget refusé avant remplacement",
+      "pass": true
+    },
+    {
+      "name": "Sauvegarde valide reconnue",
+      "pass": true
+    },
+    {
+      "name": "Navigation passé/futur sans opérations automatiques",
+      "pass": true
+    },
+    {
+      "name": "Récurrent créé une fois puis suppression définitive du mois",
+      "pass": true
+    },
+    {
+      "name": "Transfert modifié puis supprimé des deux comptes",
+      "pass": true
+    },
+    {
+      "name": "Libellés HTML affichés comme texte",
+      "pass": true
+    },
+    {
+      "name": "Navigation de toutes les sections",
+      "pass": true
+    },
+    {
+      "name": "Échec sauvegarde signalé et avertissement retiré après succès",
+      "pass": true
+    }
+  ],
+  "domErrors": []
+}
